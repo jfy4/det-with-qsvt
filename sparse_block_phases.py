@@ -11,6 +11,7 @@ from qiskit.quantum_info import Operator
 from itertools import product
 from numpy.polynomial import chebyshev
 
+# test
 
 def min_func(params, targ_func, d):
     djtil = int(np.ceil((d+1) / 2))
