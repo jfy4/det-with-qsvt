@@ -11,7 +11,6 @@ from qiskit.quantum_info import Operator
 from itertools import product
 from numpy.polynomial import chebyshev
 
-# test
 
 def min_func(params, targ_func, d):
     djtil = int(np.ceil((d+1) / 2))
@@ -195,10 +194,22 @@ class OA(qis.QuantumCircuit):
         self.compose(RYGate(0.3).control(num_ctrl_qubits=nblock,
                                          ctrl_state='0'*nblock),
                      inplace=True, qubits=(*block, anc))
-        for a, bs in enumerate(bin_states[1:s]):
-            self.compose(RYGate(-0.1).control(num_ctrl_qubits=nblock,
-                                              ctrl_state=bs),
-                         inplace=True, qubits=(*block, anc))
+        self.compose(RYGate(0.1).control(num_ctrl_qubits=nblock,
+                                         ctrl_state='001'),
+                     inplace=True, qubits=(*block, anc))
+        self.compose(RYGate(0.1).control(num_ctrl_qubits=nblock-1,
+                                         ctrl_state='01'),
+                     inplace=True, qubits=(*block[1:], anc))
+        # self.compose(RYGate(0.3).control(num_ctrl_qubits=nblock-2,
+        #                                  ctrl_state='1'),
+        #              inplace=True, qubits=(*block[2:], anc))
+        self.compose(RYGate(0.1).control(num_ctrl_qubits=nblock,
+                                         ctrl_state='100'),
+                     inplace=True, qubits=(*block, anc))
+        # for a, bs in enumerate(bin_states[1:s]):
+        #     self.compose(RYGate(-0.1).control(num_ctrl_qubits=nblock,
+        #                                       ctrl_state=bs),
+        #                  inplace=True, qubits=(*block, anc))
 
 
 # class OA(qis.QuantumCircuit):
@@ -319,14 +330,14 @@ class Uproj(qis.QuantumCircuit):
 
 
 class QuantumSignalProcess(qis.QuantumCircuit):
-    def __init__(self, d, params, nsys, s):
+    def __init__(self, phis, nsys, s):
         super().__init__()
         # djtil = int(np.ceil((d+1) / 2))
         # assert len(params) == djtil
-        if (d % 2) == 1:
-            phis = np.array(list(params) + list(params)[::-1])
-        else:
-            phis = np.array(list(params) + list(params)[::-1][1:])
+        # if (d % 2) == 1:
+        #     phis = np.array(list(params) + list(params)[::-1])
+        # else:
+        #     phis = np.array(list(params) + list(params)[::-1][1:])
 
         if s == 1:
             nblock = 1
@@ -348,7 +359,44 @@ class QuantumSignalProcess(qis.QuantumCircuit):
             self.compose(Uproj(phis[i], nsys, s), inplace=True)
             self.compose(UA, inplace=True)
         self.compose(Uproj(phis[0], nsys, s), inplace=True)
-        
+
+
+class RealPart(qis.QuantumCircuit):
+    def __init__(self, phis, nsys, s):
+        super().__init__()
+        # if (d % 2) == 1:
+        #     phis = np.array(list(params) + list(params)[::-1])
+        # else:
+        #     phis = np.array(list(params) + list(params)[::-1][1:])
+        phis_minus = -1*np.asarray(phis)
+        phis_minus[0] = phis_minus[0] + np.pi/2
+        phis_minus[-1] = phis_minus[-1] - np.pi/2
+        if s == 1:
+            nblock = 1
+        else:
+            nblock = int(np.ceil(np.log2(s)))
+
+        xreg = qis.QuantumRegister(nsys, name='x')
+        yreg = qis.QuantumRegister(nsys, name='y')
+        block = qis.QuantumRegister(nblock, name='block')
+        anc = qis.QuantumRegister(1, name='anc')
+        anc2 = qis.QuantumRegister(1, name='anc2')
+        anc3 = qis.QuantumRegister(1, name='anc3')
+        self.add_register(xreg)
+        self.add_register(yreg)
+        self.add_register(block)
+        self.add_register(anc)
+        self.add_register(anc2)
+        self.add_register(anc3)
+
+        Uphi = QuantumSignalProcess(phis, nsys, s)
+        Uphiminus = QuantumSignalProcess(phis_minus, nsys, s)
+        self.h(anc3)
+        self.compose(Uphi.control(num_ctrl_qubits=1, ctrl_state='0'),
+                     inplace=True, qubits=[*anc3, *xreg, *yreg, *block, *anc, *anc2])
+        self.compose(Uphiminus.control(num_ctrl_qubits=1),
+                     inplace=True, qubits=[*anc3, *xreg, *yreg, *block, *anc, *anc2])
+        self.h(anc3)
         
 if __name__ == "__main__":
     d = 5                       # The degree of the polynomial
@@ -366,8 +414,14 @@ if __name__ == "__main__":
     print(out)
     print(output_mat(-0.1, out.x, d))
     print(test(-0.1))
-    qsp = QuantumSignalProcess(d, out.x, 2, 5)
+    if (d % 2) == 1:
+        phis = np.array(list(out.x) + list(out.x)[::-1])
+    else:
+        phis = np.array(list(out.x) + list(out.x)[::-1][1:])
+    qsp = RealPart(phis, 2, 5)
     print(qsp)
+    # qsp = QuantumSignalProcess(phis, 2, 5)
+    # print(qsp)
     print(Operator(qsp).data[:16, :16])
     # print(BlockEncode(2, 5))
     print(Operator(BlockEncode(2, 5)).data[:16, :16])
