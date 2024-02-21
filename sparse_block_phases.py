@@ -397,15 +397,17 @@ class RealPart(qis.QuantumCircuit):
         self.compose(Uphiminus.control(num_ctrl_qubits=1),
                      inplace=True, qubits=[*anc3, *xreg, *yreg, *block, *anc, *anc2])
         self.h(anc3)
+
         
 if __name__ == "__main__":
     d = 5                       # The degree of the polynomial
-    xx = np.linspace(-1, 1, 10000)
-    arr = chebyshev.chebfit(xx, xx, d)
+    xx = np.linspace(-1, 1, 100000)
+    arr = chebyshev.chebfit(xx, erf(1 * xx), d)  # using the errorfunction to approximate sign
     print(arr)
 
     def test(x):
         return chebyshev.chebval(x, arr)
+    
     print("dtil = ", int(np.ceil((d+1) / 2)))
     params0 = np.zeros((int(np.ceil((d+1) / 2)),))
     params0[0] = np.pi / 4
@@ -414,6 +416,8 @@ if __name__ == "__main__":
     print(out)
     print(output_mat(-0.1, out.x, d))
     print(test(-0.1))
+    # assert False
+
     if (d % 2) == 1:
         phis = np.array(list(out.x) + list(out.x)[::-1])
     else:
@@ -423,6 +427,11 @@ if __name__ == "__main__":
     # qsp = QuantumSignalProcess(phis, 2, 5)
     # print(qsp)
     print(Operator(qsp).data[:16, :16])
-    # print(BlockEncode(2, 5))
+    print(BlockEncode(2, 5))
     print(Operator(BlockEncode(2, 5)).data[:16, :16])
+    # lap = Operator(BlockEncode(2, 5)).data[:16, :16]
+    # print(erf(lap))
+    # U, s, Vh = np.linalg.svd(lap)
+    # sign_lap = U.dot(np.diag(erf(s)).dot(Vh))
+    # print(sign_lap)
     
