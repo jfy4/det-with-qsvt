@@ -13,6 +13,20 @@ from numpy.polynomial import chebyshev
 
 
 def min_func(params, targ_func, d):
+    """
+    The function used for minimization.
+    
+    Parameters
+    ----------
+    params    : the angles that parameterize qsvt.
+    targ_func : the polynomial being approximated.
+    d         : the degree of the polynomial.
+
+    Returns
+    -------
+    val : the value of the cost function.
+
+    """
     djtil = int(np.ceil((d+1) / 2))
     assert len(params) == djtil
     cheby_zeros = np.cos([(2*j-1)*np.pi / (4 * djtil)
@@ -40,6 +54,21 @@ def min_func(params, targ_func, d):
 
 
 def output_mat(x, params, d):
+    """
+    Creates the little block-encoded matrix from the
+    phases.
+    
+    Parameters
+    ----------
+    x         : the value to evaluate the matrix at
+    params    : the angles that parameterize qsvt.
+    d         : the degree of the polynomial.
+
+    Returns
+    -------
+    matrix : the value of the cost function.
+
+    """
     if (d % 2) == 1:
         phis = np.array(list(params) + list(params)[::-1])
     else:
@@ -83,6 +112,15 @@ def output_mat(x, params, d):
 
 class Oc(qis.QuantumCircuit):
     def __init__(self, nsys, s):
+        """
+        The quantum circuit for the Oc operator.
+
+        Parameters
+        ----------
+        nsys : the number of qubits in the 'system'
+        s    : the number of nonzero elements in a row/column
+
+        """
         super().__init__()
         if s == 1:
             nblock = 1
@@ -174,6 +212,15 @@ class Oc(qis.QuantumCircuit):
 
 class OA(qis.QuantumCircuit):
     def __init__(self, nsys, s):
+        """
+        The quantum circuit for the OA operator.
+
+        Parameters
+        ----------
+        nsys : the number of qubits in the 'system'
+        s    : the number of nonzero elements in a row/column
+
+        """
         super().__init__()
         if s == 1:
             nblock = 1
@@ -247,6 +294,15 @@ class OA(qis.QuantumCircuit):
 
 class Diffusion(qis.QuantumCircuit):
     def __init__(self, nsys, s):
+        """
+        The quantum circuit for the Diffusion operator.
+
+        Parameters
+        ----------
+        nsys : the number of qubits in the 'system'
+        s    : the number of nonzero elements in a row/column
+
+        """
         super().__init__()
         if s == 1:
             nblock = 1
@@ -267,6 +323,15 @@ class Diffusion(qis.QuantumCircuit):
 
 class BlockEncode(qis.QuantumCircuit):
     def __init__(self, nsys, s):
+        """
+        The full quantum circuit for block-encoding.
+
+        Parameters
+        ----------
+        nsys : the number of qubits in the 'system'
+        s    : the number of nonzero elements in a row/column
+
+        """
         super().__init__()
         if s == 1:
             nblock = 1
@@ -290,6 +355,15 @@ class BlockEncode(qis.QuantumCircuit):
 
 class Lshift(qis.QuantumCircuit):
     def __init__(self, nsys):
+        """
+        The quantum circuit for modular addition.
+
+        Parameters
+        ----------
+        nsys : the number of qubits in the 'system'
+
+        """
+
         super().__init__()
         sys = qis.QuantumRegister(nsys, name='work')
         self.add_register(sys)
@@ -302,6 +376,16 @@ class Lshift(qis.QuantumCircuit):
 
 class Uproj(qis.QuantumCircuit):
     def __init__(self, angle, nsys, s):
+        """
+        The quantum circuit for the phase part of qsvt.
+
+        Parameters
+        ----------
+        angle : The angle of the phase
+        nsys  : the number of qubits in the 'system'
+        s     : the number of nonzero elements in a row/column
+
+        """
         super().__init__()
         if s == 1:
             nblock = 1
@@ -331,6 +415,16 @@ class Uproj(qis.QuantumCircuit):
 
 class QuantumSignalProcess(qis.QuantumCircuit):
     def __init__(self, phis, nsys, s):
+        """
+        The full quantum circuit for qsvt.
+
+        Parameters
+        ----------
+        phis : the phases used in the rotations
+        nsys : the number of qubits in the 'system'
+        s    : the number of nonzero elements in a row/column
+
+        """
         super().__init__()
         # djtil = int(np.ceil((d+1) / 2))
         # assert len(params) == djtil
@@ -363,6 +457,16 @@ class QuantumSignalProcess(qis.QuantumCircuit):
 
 class RealPart(qis.QuantumCircuit):
     def __init__(self, phis, nsys, s):
+        """
+        The quantum circuit for the real part of the qsvt.
+
+        Parameters
+        ----------
+        phis : the phases used in the rotations
+        nsys : the number of qubits in the 'system'
+        s    : the number of nonzero elements in a row/column
+
+        """
         super().__init__()
         # if (d % 2) == 1:
         #     phis = np.array(list(params) + list(params)[::-1])
