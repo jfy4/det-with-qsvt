@@ -85,8 +85,6 @@ def output_mat(x, params, d):
     return one_mat
 
 
-
-
 # class Oc(qis.QuantumCircuit):
 #     def __init__(self, nsys, s):
 #         super().__init__()
@@ -502,12 +500,28 @@ class RealPart(qis.QuantumCircuit):
                      inplace=True, qubits=[*anc3, *xreg, *yreg, *block, *anc, *anc2])
         self.h(anc3)
 
+
+def cheby_coeff(func, d, even=True):
+    theta = np.zeros((2*d,))
+    for i in range(2*d):
+        theta[i] = i*np.pi/d
+    f = func(np.cos(theta))
+    c = np.fft.fft(f)
+    c = np.real(c)
+    c = c[:d+1]
+    c[1:-1] = c[1:-1]*2
+    c = c / (2*d)
+    return c
+
         
 if __name__ == "__main__":
-    d = 5                       # The degree of the polynomial
-    xx = np.linspace(-1, 1, 100000)
-    arr = chebyshev.chebfit(xx, erf(1 * xx), d)  # using the errorfunction to approximate sign
+    # print(cheby_coeff(np.cos, 4))
+    d = 17               # The degree of the polynomial
+    arr = cheby_coeff(erf, d)
+    # xx = np.linspace(-1, 1, 100000)
+    # arr = chebyshev.chebfit(xx, np.cos(1 * xx), d)  # using the errorfunction to approximate sign
     print(arr)
+    # assert False
 
     def test(x):
         return chebyshev.chebval(x, arr)
@@ -519,8 +533,9 @@ if __name__ == "__main__":
     out = minimize(min_func, params0, args=(test, d), method='BFGS')
     print(out)
     print(output_mat(-0.1, out.x, d))
+    print(erf(-0.1))
     print(test(-0.1))
-    # assert False
+    assert False
 
     if (d % 2) == 1:
         phis = np.array(list(out.x) + list(out.x)[::-1])
