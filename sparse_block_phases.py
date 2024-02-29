@@ -32,25 +32,58 @@ def min_func(params, targ_func, d):
     cheby_zeros = np.cos([(2*j-1)*np.pi / (4 * djtil)
                           for j in range(1, djtil+1)])
     if (d % 2) == 1:
-        phis = np.array(list(params) + list(params)[::-1])
+        # phis = np.array(list(params) + list(params)[::-1])
+        Upis = [np.array([[np.exp(1j * params[a]), 0],
+                          [0, np.exp(-1j * params[a])]])
+                for a in range(len(params))]
+        want = 0
+        start = Upis[0]
+        for i in range(djtil):
+            W = np.array([[cheby_zeros[i], 1j * np.sqrt(1 - cheby_zeros[i]**2)],
+                          [1j * np.sqrt(1 - cheby_zeros[i]**2), cheby_zeros[i]]])
+            prod_list = [W.dot(Upis[a]) for a in range(1, len(params))]
+            one_mat = reduce(np.dot, prod_list)
+            one_mat = start.dot(one_mat)
+            one_mat = one_mat.dot(W.dot(one_mat.transpose()))
+            # one_mat = one_mat.dot(one_mat.transpose())
+            want += np.abs(np.real(one_mat[0, 0]) - targ_func(cheby_zeros[i]))**2
+        want /= djtil
+        return want
         # print(len(phis))
     else:
-        phis = np.array(list(params) + list(params)[::-1][1:])
+        # phis = np.array(list(params) + list(params)[::-1][1:])
+        Upis = [np.array([[np.exp(1j * params[a]), 0],
+                          [0, np.exp(-1j * params[a])]])
+                for a in range(len(params))]
+        want = 0
+        start = Upis[0]
+        for i in range(djtil):
+            W = np.array([[cheby_zeros[i], 1j * np.sqrt(1 - cheby_zeros[i]**2)],
+                          [1j * np.sqrt(1 - cheby_zeros[i]**2), cheby_zeros[i]]])
+            prod_list = [W.dot(Upis[a]) for a in range(1, len(params)-1)]
+            one_mat = reduce(np.dot, prod_list)
+            one_mat = start.dot(one_mat.dot(W))
+            one_mat = one_mat.dot(Upis[-1].dot(one_mat.transpose()))
+            # one_mat = one_mat.dot(one_mat.transpose())
+            want += np.abs(np.real(one_mat[0, 0]) - targ_func(cheby_zeros[i]))**2
+        want /= djtil
+        return want
+
         # print(len(phis))
-    Upis = [np.array([[np.exp(1j * phis[a]), 0],
-                      [0, np.exp(-1j * phis[a])]])
-            for a in range(len(phis))]
-    want = 0
-    start = Upis[0]
-    for i in range(djtil):
-        W = np.array([[cheby_zeros[i], 1j * np.sqrt(1 - cheby_zeros[i]**2)],
-                      [1j * np.sqrt(1 - cheby_zeros[i]**2), cheby_zeros[i]]])
-        prod_list = [W.dot(Upis[a]) for a in range(1, len(phis))]
-        one_mat = reduce(np.dot, prod_list)
-        one_mat = start.dot(one_mat)
-        want += np.abs(np.real(one_mat[0, 0]) - targ_func(cheby_zeros[i]))**2
-    want /= djtil
-    return want
+    # upis = [np.array([[np.exp(1j * phis[a]), 0],
+    #                   [0, np.exp(-1j * phis[a])]])
+    #         for a in range(len(phis))]
+    # want = 0
+    # start = Upis[0]
+    # for i in range(djtil):
+    #     W = np.array([[cheby_zeros[i], 1j * np.sqrt(1 - cheby_zeros[i]**2)],
+    #                   [1j * np.sqrt(1 - cheby_zeros[i]**2), cheby_zeros[i]]])
+    #     prod_list = [W.dot(Upis[a]) for a in range(1, len(phis))]
+    #     one_mat = reduce(np.dot, prod_list)
+    #     one_mat = start.dot(one_mat)
+    #     want += np.abs(np.real(one_mat[0, 0]) - targ_func(cheby_zeros[i]))**2
+    # want /= djtil
+    # return want
 
 
 def output_mat(x, params, d):
@@ -501,7 +534,11 @@ class RealPart(qis.QuantumCircuit):
         self.h(anc3)
 
 
-def cheby_coeff(func, d, even=True):
+def cheby_coeff(func, d):
+    """
+    Computing the chebyshev coeffcients.
+
+    """
     theta = np.zeros((2*d,))
     for i in range(2*d):
         theta[i] = i*np.pi/d
@@ -516,8 +553,8 @@ def cheby_coeff(func, d, even=True):
         
 if __name__ == "__main__":
     # print(cheby_coeff(np.cos, 4))
-    d = 17               # The degree of the polynomial
-    arr = cheby_coeff(erf, d)
+    d = 30               # The degree of the polynomial
+    arr = cheby_coeff(np.cos, d)
     # xx = np.linspace(-1, 1, 100000)
     # arr = chebyshev.chebfit(xx, np.cos(1 * xx), d)  # using the errorfunction to approximate sign
     print(arr)
@@ -530,10 +567,12 @@ if __name__ == "__main__":
     params0 = np.zeros((int(np.ceil((d+1) / 2)),))
     params0[0] = np.pi / 4
     print(params0)
-    out = minimize(min_func, params0, args=(test, d), method='BFGS')
+    out = minimize(min_func, params0, args=(test, d),
+                   method='BFGS', jac='3-point',
+                   options={'gtol':1e-15})
     print(out)
-    print(output_mat(-0.1, out.x, d))
-    print(erf(-0.1))
+    print(output_mat(-0.1, out.x, d)[0,0])
+    print(np.cos(-0.1))
     print(test(-0.1))
     assert False
 
