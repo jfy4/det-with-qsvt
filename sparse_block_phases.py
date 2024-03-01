@@ -12,6 +12,10 @@ from itertools import product
 from numpy.polynomial import chebyshev
 
 
+sz = np.array([[1, 0],
+               [0, -1]])
+
+
 def min_func(params, targ_func, d):
     """
     The function used for minimization.
@@ -84,6 +88,162 @@ def min_func(params, targ_func, d):
     #     want += np.abs(np.real(one_mat[0, 0]) - targ_func(cheby_zeros[i]))**2
     # want /= djtil
     # return want
+
+
+def grad(params, targ_func, d):
+    """
+    The gradient of the cost function.
+    
+    Parameters
+    ----------
+    params    : the angles that parameterize qsvt.
+    targ_func : the polynomial being approximated.
+    d         : the degree of the polynomial.
+
+    Returns
+    -------
+    val : the value of the cost function.
+
+    """
+    djtil = int(np.ceil((d+1) / 2))
+    assert len(params) == djtil
+    cheby_zeros = np.cos([(2*j-1)*np.pi / (4 * djtil)
+                          for j in range(1, djtil+1)])
+    Upis = np.array([np.array([[np.exp(1j * params[a]), 0],
+                               [0, np.exp(-1j * params[a])]])
+                     for a in range(len(params))])
+    # print(Upis.shape)
+    Thetas = 1j*np.tensordot(sz, Upis, axes=([1], [1])).transpose((1, 0, 2))
+    want = np.zeros((len(params),))
+    start = Upis[0]
+    if (d % 2) == 1:
+        # phis = np.array(list(params) + list(params)[::-1])
+        val = 0
+        for i in range(djtil):
+            W = np.array([[cheby_zeros[i], 1j * np.sqrt(1 - cheby_zeros[i]**2)],
+                          [1j * np.sqrt(1 - cheby_zeros[i]**2), cheby_zeros[i]]])
+            prod_list = [W.dot(Upis[a]) for a in range(1, len(params))]
+            one_mat = reduce(np.dot, prod_list)
+            two_mat = Thetas[0, :, :].dot(one_mat)
+            one_mat = start.dot(one_mat)
+            pure_complete = one_mat.dot(W.dot(one_mat.transpose()))
+            diff = (np.real(pure_complete[0, 0]) - targ_func(cheby_zeros[i]))
+            # print(diff)
+            deriv = (two_mat.dot(W.dot(one_mat.transpose())) +
+                     one_mat.dot(W.dot(two_mat.transpose())))
+            # print(two_mat.dot(W.dot(one_mat.transpose())))
+            val += diff * np.real(deriv)[0, 0]
+        val *= (2 / djtil)
+        want[0] = val
+        for j in range(1, djtil):
+            # phis = np.array(list(params) + list(params)[::-1])
+            val = 0
+            for i in range(djtil):
+                W = np.array([[cheby_zeros[i], 1j * np.sqrt(1 - cheby_zeros[i]**2)],
+                              [1j * np.sqrt(1 - cheby_zeros[i]**2), cheby_zeros[i]]])
+                prod_list = [W.dot(Upis[a]) for a in range(1, len(params))]
+                one_mat = reduce(np.dot, prod_list)
+                one_mat = start.dot(one_mat)
+                pure_complete = one_mat.dot(W.dot(one_mat.transpose()))
+                diff = (np.real(pure_complete[0, 0]) - targ_func(cheby_zeros[i]))
+                try:
+                    prod_list_left = reduce(np.dot, [W.dot(Upis[a]) for a in range(1, j)])
+                except TypeError:
+                    prod_list_left = np.eye(2)
+                mid = W.dot(Thetas[j, :, :])
+                try:
+                    prod_list_right = reduce(np.dot, [W.dot(Upis[a]) for a in range(j+1, len(params))])
+                except TypeError:
+                    prod_list_right = np.eye(2)
+                two_mat = prod_list_left.dot(mid.dot(prod_list_right))
+                two_mat = start.dot(two_mat)
+                deriv = (two_mat.dot(W.dot(one_mat.transpose())) +
+                         one_mat.dot(W.dot(two_mat.transpose())))
+                val += diff * np.real(deriv)[0, 0]
+            val *= (2 / djtil)
+            want[j] = val
+    else:
+        # phis = np.array(list(params) + list(params)[::-1])
+        val = 0
+        for i in range(djtil):
+            W = np.array([[cheby_zeros[i], 1j * np.sqrt(1 - cheby_zeros[i]**2)],
+                          [1j * np.sqrt(1 - cheby_zeros[i]**2), cheby_zeros[i]]])
+            prod_list = [W.dot(Upis[a]) for a in range(1, len(params)-1)]
+            one_mat = reduce(np.dot, prod_list)
+            two_mat = Thetas[0, :, :].dot(one_mat.dot(W))
+            one_mat = start.dot(one_mat.dot(W))
+            pure_complete = one_mat.dot(Upis[-1].dot(one_mat.transpose()))
+            diff = (np.real(pure_complete[0, 0]) - targ_func(cheby_zeros[i]))
+            # print(diff)
+            deriv = (two_mat.dot(Upis[-1].dot(one_mat.transpose())) +
+                     one_mat.dot(Upis[-1].dot(two_mat.transpose())))
+            # print(two_mat.dot(W.dot(one_mat.transpose())))
+            val += diff * np.real(deriv)[0, 0]
+        val *= (2 / djtil)
+        want[0] = val
+        for j in range(1, djtil-1):
+            # phis = np.array(list(params) + list(params)[::-1])
+            val = 0
+            for i in range(djtil):
+                W = np.array([[cheby_zeros[i], 1j * np.sqrt(1 - cheby_zeros[i]**2)],
+                              [1j * np.sqrt(1 - cheby_zeros[i]**2), cheby_zeros[i]]])
+                prod_list = [W.dot(Upis[a]) for a in range(1, len(params)-1)]
+                one_mat = reduce(np.dot, prod_list)
+                one_mat = start.dot(one_mat.dot(W))
+                pure_complete = one_mat.dot(Upis[-1].dot(one_mat.transpose()))
+                diff = (np.real(pure_complete[0, 0]) - targ_func(cheby_zeros[i]))
+                try:
+                    prod_list_left = reduce(np.dot, [W.dot(Upis[a]) for a in range(1, j)])
+                except TypeError:
+                    prod_list_left = np.eye(2)
+                mid = W.dot(Thetas[j, :, :])
+                try:
+                    prod_list_right = reduce(np.dot, [W.dot(Upis[a]) for a in range(j+1, len(params)-1)])
+                except TypeError:
+                    prod_list_right = np.eye(2)
+                two_mat = prod_list_left.dot(mid.dot(prod_list_right))
+                two_mat = start.dot(two_mat.dot(W))
+                deriv = (two_mat.dot(Upis[-1].dot(one_mat.transpose())) +
+                         one_mat.dot(Upis[-1].dot(two_mat.transpose())))
+                val += diff * np.real(deriv)[0, 0]
+            val *= (2 / djtil)
+            want[j] = val
+        val = 0
+        for i in range(djtil):
+            W = np.array([[cheby_zeros[i], 1j * np.sqrt(1 - cheby_zeros[i]**2)],
+                          [1j * np.sqrt(1 - cheby_zeros[i]**2), cheby_zeros[i]]])
+            prod_list = [W.dot(Upis[a]) for a in range(1, len(params)-1)]
+            one_mat = reduce(np.dot, prod_list)
+            one_mat = start.dot(one_mat.dot(W))
+            pure_complete = one_mat.dot(Upis[-1].dot(one_mat.transpose()))
+            diff = (np.real(pure_complete[0, 0]) - targ_func(cheby_zeros[i]))
+            prod_list_left = reduce(np.dot, [W.dot(Upis[a]) for a in range(1, djtil-1)])
+            two_mat = start.dot(prod_list_left.dot(W))
+            # mid = W.dot(Thetas[-1, :, :])
+            # prod_list_right = np.eye(2)
+            # two_mat = prod_list_left.dot(mid)
+            # two_mat = start.dot(two_mat)
+            deriv = (two_mat.dot(Thetas[-1, :, :].dot(one_mat.transpose())) +
+                     one_mat.dot(Thetas[-1, :, :].dot(two_mat.transpose())))
+            val += diff * np.real(deriv)[0, 0]
+        val *= (2 / djtil)
+        want[-1] = val
+    return want
+    # else:
+    #         # phis = np.array(list(params) + list(params)[::-1][1:])
+    #         want = 0
+    #         start = Upis[0]
+    #         for i in range(djtil):
+    #             W = np.array([[cheby_zeros[i], 1j * np.sqrt(1 - cheby_zeros[i]**2)],
+    #                           [1j * np.sqrt(1 - cheby_zeros[i]**2), cheby_zeros[i]]])
+    #             prod_list = [W.dot(Upis[a]) for a in range(1, len(params)-1)]
+    #             one_mat = reduce(np.dot, prod_list)
+    #             one_mat = start.dot(one_mat.dot(W))
+    #             one_mat = one_mat.dot(Upis[-1].dot(one_mat.transpose()))
+    #             # one_mat = one_mat.dot(one_mat.transpose())
+    #             want += np.abs(np.real(one_mat[0, 0]) - targ_func(cheby_zeros[i]))**2
+    #         want /= djtil
+    #         return want
 
 
 def output_mat(x, params, d):
@@ -563,23 +723,37 @@ if __name__ == "__main__":
     def test(x):
         return chebyshev.chebval(x, arr)
     
-    print("dtil = ", int(np.ceil((d+1) / 2)))
-    params0 = np.zeros((int(np.ceil((d+1) / 2)),))
+    djtil = int(np.ceil((d+1) / 2))
+    print("dtil = ", djtil)
+    params0 = np.zeros((djtil,))
     params0[0] = np.pi / 4
     print(params0)
-    out = minimize(min_func, params0, args=(test, d),
-                   method='BFGS', jac='3-point',
-                   options={'gtol':1e-15})
-    print(out)
-    print(output_mat(-0.1, out.x, d)[0,0])
-    print(np.cos(-0.1))
-    print(test(-0.1))
-    assert False
+    # print(grad(params0, test, d))
+    # assert False
+    # out = minimize(min_func, params0, args=(test, d),
+    #                method='BFGS', jac='3-point',
+    #                options={'gtol':1e-15})
 
     if (d % 2) == 1:
+        out = minimize(min_func, params0, args=(test, d),
+                       method='BFGS', jac=grad,
+                       options={'gtol':1e-24})
+        print(out)
+        print(np.real(output_mat(-0.1, out.x, d))[0,0])
+        print(np.cos(-0.1))
+        print(test(-0.1))
         phis = np.array(list(out.x) + list(out.x)[::-1])
     else:
-        phis = np.array(list(out.x) + list(out.x)[::-1][1:])
+        out = minimize(min_func, params0, args=(test, d),
+                       method='BFGS', jac=grad,
+                       options={'gtol':1e-24})
+        print(out)
+        print(np.real(output_mat(-0.1, out.x, d))[0,0])
+        print(np.cos(-0.1))
+        print(test(-0.1))
+        phis = np.array(list(out.x) + list(out.x)[::-1][1:])        
+    assert False
+    
     qsp = RealPart(phis, 2, 5)
     print(qsp)
     # qsp = QuantumSignalProcess(phis, 2, 5)
