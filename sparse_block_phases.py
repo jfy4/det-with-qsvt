@@ -223,8 +223,9 @@ def grad(params, targ_func, d):
             # prod_list_right = np.eye(2)
             # two_mat = prod_list_left.dot(mid)
             # two_mat = start.dot(two_mat)
-            deriv = (two_mat.dot(Thetas[-1, :, :].dot(one_mat.transpose())) +
-                     one_mat.dot(Thetas[-1, :, :].dot(two_mat.transpose())))
+            deriv = two_mat.dot(Thetas[-1, :, :].dot(one_mat.transpose()))
+            # deriv = (two_mat.dot(Thetas[-1, :, :].dot(one_mat.transpose())) +
+            #          one_mat.dot(Thetas[-1, :, :].dot(two_mat.transpose())))
             val += diff * np.real(deriv)[0, 0]
         val *= (2 / djtil)
         want[-1] = val
