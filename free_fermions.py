@@ -445,9 +445,21 @@ class OA(qis.QuantumCircuit):
                                                     ctrl_state='100'),
                      inplace=True, qubits=(*block, anc))
         stag_phase = StaggeredPhase(nsys)
-        self.compose(stag_phase.control(num_ctrl_qubits=1,
-                                        ctrl_state='0'),
-                     inplace=True, qubits=(*anc, *xreg, *yreg))
+        self.compose(stag_phase.control(num_ctrl_qubits=4,
+                                        ctrl_state='0000'),
+                     inplace=True, qubits=(*block, *anc, *xreg, *yreg))
+        self.compose(stag_phase.control(num_ctrl_qubits=4,
+                                        ctrl_state='0001'),
+                     inplace=True, qubits=(*block, *anc, *xreg, *yreg))
+        self.compose(stag_phase.control(num_ctrl_qubits=4,
+                                        ctrl_state='0010'),
+                     inplace=True, qubits=(*block, *anc, *xreg, *yreg))
+        self.compose(stag_phase.control(num_ctrl_qubits=4,
+                                        ctrl_state='0011'),
+                     inplace=True, qubits=(*block, *anc, *xreg, *yreg))
+        self.compose(stag_phase.control(num_ctrl_qubits=4,
+                                        ctrl_state='0100'),
+                     inplace=True, qubits=(*block, *anc, *xreg, *yreg))
                                         
 
 class StaggeredPhase(qis.QuantumCircuit):
