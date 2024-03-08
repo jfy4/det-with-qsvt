@@ -333,17 +333,17 @@ class Oc(qis.QuantumCircuit):
         self.add_register(anc2)
         # for a, bs in enumerate(bin_states[1:(s-1)//2+1]):
         self.compose(Lshift(nsys).control(num_ctrl_qubits=nblock,
-                                          ctrl_state='001'),
+                                          ctrl_state='000'),
                      inplace=True, qubits=(*block, *xreg))
         self.compose(Lshift(nsys).control(num_ctrl_qubits=nblock,
-                                          ctrl_state='010'),
+                                          ctrl_state='001'),
                      inplace=True, qubits=(*block, *yreg))
         # for bs in bin_states[(s-1)//2+1:s]:
         self.compose(Lshift(nsys).inverse().control(num_ctrl_qubits=nblock,
-                                                    ctrl_state='011'),
+                                                    ctrl_state='010'),
                      inplace=True, qubits=(*block, *xreg))
         self.compose(Lshift(nsys).inverse().control(num_ctrl_qubits=nblock,
-                                                    ctrl_state='100'),
+                                                    ctrl_state='011'),
                      inplace=True, qubits=(*block, *yreg))
 
 
@@ -430,21 +430,21 @@ class OA(qis.QuantumCircuit):
         self.add_register(block)
         self.add_register(anc)
         self.add_register(anc2)
-        self.compose(RYGate(0.3).control(num_ctrl_qubits=nblock,
-                                         ctrl_state='0'*nblock),
+        self.compose(RYGate(2*np.arccos(-4/9)).control(num_ctrl_qubits=1,
+                                                       ctrl_state='0'),
+                     inplace=True, qubits=(block[-1], anc))
+        self.compose(RYGate(2*np.arccos((4./9)*(8+0.5**2)-3)).control(num_ctrl_qubits=nblock,
+                                                                    ctrl_state='100'),
                      inplace=True, qubits=(*block, anc))
-        self.compose(RYGate(0.1).control(num_ctrl_qubits=nblock,
-                                         ctrl_state='001'),
-                     inplace=True, qubits=(*block, anc))
-        self.compose(RYGate(0.1).control(num_ctrl_qubits=nblock-1,
-                                         ctrl_state='01'),
-                     inplace=True, qubits=(*block[1:], anc))
+        # self.compose(RYGate(0.1).control(num_ctrl_qubits=nblock-1,
+        #                                  ctrl_state='01'),
+        #              inplace=True, qubits=(*block[1:], anc))
         # self.compose(RYGate(0.3).control(num_ctrl_qubits=nblock-2,
         #                                  ctrl_state='1'),
         #              inplace=True, qubits=(*block[2:], anc))
-        self.compose(RYGate(0.1).control(num_ctrl_qubits=nblock,
-                                         ctrl_state='100'),
-                     inplace=True, qubits=(*block, anc))
+        # self.compose(RYGate(0.1).control(num_ctrl_qubits=nblock,
+        #                                  ctrl_state='100'),
+        #              inplace=True, qubits=(*block, anc))
         # for a, bs in enumerate(bin_states[1:s]):
         #     self.compose(RYGate(-0.1).control(num_ctrl_qubits=nblock,
         #                                       ctrl_state=bs),
@@ -713,53 +713,53 @@ def cheby_coeff(func, d):
 
         
 if __name__ == "__main__":
-    # print(cheby_coeff(np.cos, 4))
-    d = 30               # The degree of the polynomial
-    arr = cheby_coeff(np.cos, d)
-    # xx = np.linspace(-1, 1, 100000)
-    # arr = chebyshev.chebfit(xx, np.cos(1 * xx), d)  # using the errorfunction to approximate sign
-    print(arr)
-    # assert False
+    # # print(cheby_coeff(np.cos, 4))
+    # d = 30               # The degree of the polynomial
+    # arr = cheby_coeff(np.cos, d)
+    # # xx = np.linspace(-1, 1, 100000)
+    # # arr = chebyshev.chebfit(xx, np.cos(1 * xx), d)  # using the errorfunction to approximate sign
+    # print(arr)
+    # # assert False
 
-    def test(x):
-        return chebyshev.chebval(x, arr)
+    # def test(x):
+    #     return chebyshev.chebval(x, arr)
     
-    djtil = int(np.ceil((d+1) / 2))
-    print("dtil = ", djtil)
-    params0 = np.zeros((djtil,))
-    params0[0] = np.pi / 4
-    print(params0)
-    # print(grad(params0, test, d))
-    # assert False
-    # out = minimize(min_func, params0, args=(test, d),
-    #                method='BFGS', jac='3-point',
-    #                options={'gtol':1e-15})
+    # djtil = int(np.ceil((d+1) / 2))
+    # print("dtil = ", djtil)
+    # params0 = np.zeros((djtil,))
+    # params0[0] = np.pi / 4
+    # print(params0)
+    # # print(grad(params0, test, d))
+    # # assert False
+    # # out = minimize(min_func, params0, args=(test, d),
+    # #                method='BFGS', jac='3-point',
+    # #                options={'gtol':1e-15})
 
-    if (d % 2) == 1:
-        out = minimize(min_func, params0, args=(test, d),
-                       method='BFGS', jac=grad,
-                       options={'gtol':1e-24})
-        print(out)
-        print(np.real(output_mat(-0.1, out.x, d))[0,0])
-        print(np.cos(-0.1))
-        print(test(-0.1))
-        phis = np.array(list(out.x) + list(out.x)[::-1])
-    else:
-        out = minimize(min_func, params0, args=(test, d),
-                       method='BFGS', jac=grad,
-                       options={'gtol':1e-24})
-        print(out)
-        print(np.real(output_mat(-0.1, out.x, d))[0,0])
-        print(np.cos(-0.1))
-        print(test(-0.1))
-        phis = np.array(list(out.x) + list(out.x)[::-1][1:])        
-    assert False
+    # if (d % 2) == 1:
+    #     out = minimize(min_func, params0, args=(test, d),
+    #                    method='BFGS', jac=grad,
+    #                    options={'gtol':1e-24})
+    #     print(out)
+    #     print(np.real(output_mat(-0.1, out.x, d))[0,0])
+    #     print(np.cos(-0.1))
+    #     print(test(-0.1))
+    #     phis = np.array(list(out.x) + list(out.x)[::-1])
+    # else:
+    #     out = minimize(min_func, params0, args=(test, d),
+    #                    method='BFGS', jac=grad,
+    #                    options={'gtol':1e-24})
+    #     print(out)
+    #     print(np.real(output_mat(-0.1, out.x, d))[0,0])
+    #     print(np.cos(-0.1))
+    #     print(test(-0.1))
+    #     phis = np.array(list(out.x) + list(out.x)[::-1][1:])        
+    # assert False
     
-    qsp = RealPart(phis, 2, 5)
-    print(qsp)
+    # qsp = RealPart(phis, 2, 5)
+    # print(qsp)
     # qsp = QuantumSignalProcess(phis, 2, 5)
     # print(qsp)
-    print(Operator(qsp).data[:16, :16])
+    # print(Operator().data[:16, :16])
     print(BlockEncode(2, 5))
     print(Operator(BlockEncode(2, 5)).data[:16, :16])
     # lap = Operator(BlockEncode(2, 5)).data[:16, :16]

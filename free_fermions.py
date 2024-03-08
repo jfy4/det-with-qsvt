@@ -5,7 +5,7 @@ from scipy.optimize import minimize, HessianUpdateStrategy
 from functools import reduce
 from scipy.special import erf
 import qiskit as qis
-from qiskit.circuit.library import MCXGate, RYGate
+from qiskit.circuit.library import MCXGate, RYGate, PhaseGate
 from qiskit.quantum_info import Operator
 from itertools import product
 from numpy.polynomial import chebyshev
@@ -332,17 +332,17 @@ class Oc(qis.QuantumCircuit):
         self.add_register(anc2)
         # for a, bs in enumerate(bin_states[1:(s-1)//2+1]):
         self.compose(Lshift(nsys).control(num_ctrl_qubits=nblock,
-                                          ctrl_state='001'),
+                                          ctrl_state='000'),
                      inplace=True, qubits=(*block, *xreg))
         self.compose(Lshift(nsys).control(num_ctrl_qubits=nblock,
-                                          ctrl_state='010'),
+                                          ctrl_state='001'),
                      inplace=True, qubits=(*block, *yreg))
         # for bs in bin_states[(s-1)//2+1:s]:
         self.compose(Lshift(nsys).inverse().control(num_ctrl_qubits=nblock,
-                                                    ctrl_state='011'),
+                                                    ctrl_state='010'),
                      inplace=True, qubits=(*block, *xreg))
         self.compose(Lshift(nsys).inverse().control(num_ctrl_qubits=nblock,
-                                                    ctrl_state='100'),
+                                                    ctrl_state='011'),
                      inplace=True, qubits=(*block, *yreg))
 
 
@@ -429,41 +429,23 @@ class OA(qis.QuantumCircuit):
         self.add_register(block)
         self.add_register(anc)
         self.add_register(anc2)
-        self.compose(RYGate(np.arccos(0.5)).control(num_ctrl_qubits=nblock,
-                                                    ctrl_state='000'),
-                     inplace=True, qubits=(*block, anc))
-        self.compose(RYGate(np.arccos(0.5)).control(num_ctrl_qubits=nblock,
-                                                    ctrl_state='001'),
-                     inplace=True, qubits=(*block, anc))
-        self.compose(RYGate(np.arccos(-0.5)).control(num_ctrl_qubits=nblock,
-                                                     ctrl_state='010'),
-                     inplace=True, qubits=(*block, anc))
-        self.compose(RYGate(np.arccos(-0.5)).control(num_ctrl_qubits=nblock,
-                                                     ctrl_state='011'),
-                     inplace=True, qubits=(*block, anc))
-        self.compose(RYGate(np.arccos(0.2)).control(num_ctrl_qubits=nblock,
+        self.compose(RYGate(2*np.arccos(0.3)).control(num_ctrl_qubits=2,
+                                                      ctrl_state='00'),
+                     inplace=True, qubits=(*block[-2:], anc))
+        self.compose(RYGate(2*np.arccos(-0.3)).control(num_ctrl_qubits=2,
+                                                       ctrl_state='01'),
+                     inplace=True, qubits=(*block[-2:], anc))
+        self.compose(RYGate(np.arccos(0.1)).control(num_ctrl_qubits=3,
                                                     ctrl_state='100'),
                      inplace=True, qubits=(*block, anc))
         stag_phase = StaggeredPhase(nsys)
-        self.compose(stag_phase.control(num_ctrl_qubits=4,
-                                        ctrl_state='0000'),
-                     inplace=True, qubits=(*block, *anc, *xreg, *yreg))
-        self.compose(stag_phase.control(num_ctrl_qubits=4,
-                                        ctrl_state='0001'),
-                     inplace=True, qubits=(*block, *anc, *xreg, *yreg))
-        self.compose(stag_phase.control(num_ctrl_qubits=4,
-                                        ctrl_state='0010'),
-                     inplace=True, qubits=(*block, *anc, *xreg, *yreg))
-        self.compose(stag_phase.control(num_ctrl_qubits=4,
-                                        ctrl_state='0011'),
-                     inplace=True, qubits=(*block, *anc, *xreg, *yreg))
-        self.compose(stag_phase.control(num_ctrl_qubits=4,
-                                        ctrl_state='0100'),
-                     inplace=True, qubits=(*block, *anc, *xreg, *yreg))
+        self.compose(stag_phase.control(num_ctrl_qubits=3,
+                                        ctrl_state='001'),
+                     inplace=True, qubits=(block[0], block[-1], *anc, *xreg))
                                         
 
 class StaggeredPhase(qis.QuantumCircuit):
-    def __init__(self, nsys):
+    def __init__(self, nsys, mu):
         """
         Computers the staggered phase for a spacetime point.
 
@@ -474,27 +456,33 @@ class StaggeredPhase(qis.QuantumCircuit):
 
         """
         super().__init__()
-        # if s == 1:
-        #     nblock = 1
-        # else:
-        #     nblock = int(np.ceil(np.log2(s)))
-        # bin_states = product(['0', '1'], repeat=nblock)
-        # bin_states = [''.join(x) for x in bin_states]
-        xreg = qis.QuantumRegister(nsys, name='x')
-        yreg = qis.QuantumRegister(nsys, name='y')
-        # block = qis.QuantumRegister(nblock, name='block')
-        # anc = qis.QuantumRegister(1, name='anc')
-        # anc2 = qis.QuantumRegister(1, name='anc2')
-        self.add_register(xreg)
-        self.add_register(yreg)
-        # self.add_register(block)
-        # self.add_register(anc)
-        # self.add_register(anc2)
-
-        for n, q in enumerate(xreg):
-            self.rz(np.pi * 2**n, q)
-        for n, q in enumerate(yreg):
-            self.rz(np.pi * 2**n, q)
+        if 1 <= mu:
+            xreg = qis.QuantumRegister(nsys, name='x')
+            self.add_register(xreg)
+            for n, q in enumerate(xreg):
+                self.p(2**n * np.pi / 2, q)
+                self.x(q)
+                self.p(2**n * np.pi / 2, q)
+                self.x(q)
+                self.rz(np.pi * 2**n, q)
+        if 2 <= mu:
+            yreg = qis.QuantumRegister(nsys, name='y')
+            self.add_register(yreg)
+            for n, q in enumerate(yreg):
+                self.p(2**n * np.pi / 2, q)
+                self.x(q)
+                self.p(2**n * np.pi / 2, q)
+                self.x(q)
+                self.rz(np.pi * 2**n, q)
+        if 3 <= mu:
+            zreg = qis.QuantumRegister(nsys, name='x')
+            self.add_register(zreg)
+            for n, q in enumerate(zreg):
+                self.p(2**n * np.pi / 2, q)
+                self.x(q)
+                self.p(2**n * np.pi / 2, q)
+                self.x(q)
+                self.rz(np.pi * 2**n, q)
 
 # class OA(qis.QuantumCircuit):
 #     def __init__(self, nsys, s):
@@ -758,10 +746,13 @@ def cheby_coeff(func, d):
 
         
 if __name__ == "__main__":
-    # test = StaggeredPhase(2, 5)
+    test = StaggeredPhase(3, 1)
     # print(test)
-    test = OA(2, 5)
+    # test = OA(2, 5)
+    # test = BlockEncode(2, 5)
     print(test)
+    print((np.round(Operator(test).data[:16, :16], 8)))
+    # print(Operator(test).data)
     # print(cheby_coeff(np.cos, 4))
     # d = 30               # The degree of the polynomial
     # arr = cheby_coeff(np.cos, d)
