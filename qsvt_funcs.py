@@ -1,11 +1,12 @@
 #!/home/judah/miniconda3/bin/python
 
 import numpy as np
+# import math as mt
 from scipy.optimize import minimize, HessianUpdateStrategy
 from functools import reduce
 from scipy.special import erf
 import qiskit as qis
-from qiskit.circuit.library import MCXGate, RYGate, PhaseGate
+from qiskit.circuit.library import MCXGate, RYGate
 from qiskit.quantum_info import Operator
 from itertools import product
 from numpy.polynomial import chebyshev
@@ -72,22 +73,6 @@ def min_func(params, targ_func, d):
             want += np.abs(np.real(one_mat[0, 0]) - targ_func(cheby_zeros[i]))**2
         want /= djtil
         return want
-
-        # print(len(phis))
-    # upis = [np.array([[np.exp(1j * phis[a]), 0],
-    #                   [0, np.exp(-1j * phis[a])]])
-    #         for a in range(len(phis))]
-    # want = 0
-    # start = Upis[0]
-    # for i in range(djtil):
-    #     W = np.array([[cheby_zeros[i], 1j * np.sqrt(1 - cheby_zeros[i]**2)],
-    #                   [1j * np.sqrt(1 - cheby_zeros[i]**2), cheby_zeros[i]]])
-    #     prod_list = [W.dot(Upis[a]) for a in range(1, len(phis))]
-    #     one_mat = reduce(np.dot, prod_list)
-    #     one_mat = start.dot(one_mat)
-    #     want += np.abs(np.real(one_mat[0, 0]) - targ_func(cheby_zeros[i]))**2
-    # want /= djtil
-    # return want
 
 
 def grad(params, targ_func, d):
@@ -230,21 +215,6 @@ def grad(params, targ_func, d):
         val *= (2 / djtil)
         want[-1] = val
     return want
-    # else:
-    #         # phis = np.array(list(params) + list(params)[::-1][1:])
-    #         want = 0
-    #         start = Upis[0]
-    #         for i in range(djtil):
-    #             W = np.array([[cheby_zeros[i], 1j * np.sqrt(1 - cheby_zeros[i]**2)],
-    #                           [1j * np.sqrt(1 - cheby_zeros[i]**2), cheby_zeros[i]]])
-    #             prod_list = [W.dot(Upis[a]) for a in range(1, len(params)-1)]
-    #             one_mat = reduce(np.dot, prod_list)
-    #             one_mat = start.dot(one_mat.dot(W))
-    #             one_mat = one_mat.dot(Upis[-1].dot(one_mat.transpose()))
-    #             # one_mat = one_mat.dot(one_mat.transpose())
-    #             want += np.abs(np.real(one_mat[0, 0]) - targ_func(cheby_zeros[i]))**2
-    #         want /= djtil
-    #         return want
 
 
 def output_mat(x, params, d):
@@ -430,60 +400,26 @@ class OA(qis.QuantumCircuit):
         self.add_register(block)
         self.add_register(anc)
         self.add_register(anc2)
-        self.compose(RYGate(2*np.arccos(0.3)).control(num_ctrl_qubits=2,
-                                                      ctrl_state='00'),
-                     inplace=True, qubits=(*block[-2:], anc))
-        self.compose(RYGate(2*np.arccos(-0.3)).control(num_ctrl_qubits=2,
-                                                       ctrl_state='01'),
-                     inplace=True, qubits=(*block[-2:], anc))
-        self.compose(RYGate(np.arccos(0.1)).control(num_ctrl_qubits=3,
-                                                    ctrl_state='100'),
+        self.compose(RYGate(2*np.arccos(-4/9)).control(num_ctrl_qubits=1,
+                                                       ctrl_state='0'),
+                     inplace=True, qubits=(block[-1], anc))
+        self.compose(RYGate(2*np.arccos((4./9)*(8+0.5**2)-3)).control(num_ctrl_qubits=nblock,
+                                                                    ctrl_state='100'),
                      inplace=True, qubits=(*block, anc))
-        stag_phase = StaggeredPhase(nsys, 1)
-        self.compose(stag_phase.control(num_ctrl_qubits=3,
-                                        ctrl_state='001'),
-                     inplace=True, qubits=(block[0], block[-1], *anc, *xreg))
-                                        
+        # self.compose(RYGate(0.1).control(num_ctrl_qubits=nblock-1,
+        #                                  ctrl_state='01'),
+        #              inplace=True, qubits=(*block[1:], anc))
+        # self.compose(RYGate(0.3).control(num_ctrl_qubits=nblock-2,
+        #                                  ctrl_state='1'),
+        #              inplace=True, qubits=(*block[2:], anc))
+        # self.compose(RYGate(0.1).control(num_ctrl_qubits=nblock,
+        #                                  ctrl_state='100'),
+        #              inplace=True, qubits=(*block, anc))
+        # for a, bs in enumerate(bin_states[1:s]):
+        #     self.compose(RYGate(-0.1).control(num_ctrl_qubits=nblock,
+        #                                       ctrl_state=bs),
+        #                  inplace=True, qubits=(*block, anc))
 
-class StaggeredPhase(qis.QuantumCircuit):
-    def __init__(self, nsys, mu):
-        """
-        Computers the staggered phase for a spacetime point.
-
-        Parameters
-        ----------
-        nsys : the number of qubits in the 'system'
-        s    : the number of nonzero elements in a row/column
-
-        """
-        super().__init__()
-        if 1 <= mu:
-            xreg = qis.QuantumRegister(nsys, name='x')
-            self.add_register(xreg)
-            for n, q in enumerate(xreg):
-                self.p(2**n * np.pi / 2, q)
-                self.x(q)
-                self.p(2**n * np.pi / 2, q)
-                self.x(q)
-                self.rz(np.pi * 2**n, q)
-        if 2 <= mu:
-            yreg = qis.QuantumRegister(nsys, name='y')
-            self.add_register(yreg)
-            for n, q in enumerate(yreg):
-                self.p(2**n * np.pi / 2, q)
-                self.x(q)
-                self.p(2**n * np.pi / 2, q)
-                self.x(q)
-                self.rz(np.pi * 2**n, q)
-        if 3 <= mu:
-            zreg = qis.QuantumRegister(nsys, name='x')
-            self.add_register(zreg)
-            for n, q in enumerate(zreg):
-                self.p(2**n * np.pi / 2, q)
-                self.x(q)
-                self.p(2**n * np.pi / 2, q)
-                self.x(q)
-                self.rz(np.pi * 2**n, q)
 
 # class OA(qis.QuantumCircuit):
 #     def __init__(self, nsys, s):
@@ -737,9 +673,7 @@ def cheby_coeff(func, d):
     theta = np.zeros((2*d,))
     for i in range(2*d):
         theta[i] = i*np.pi/d
-    # print(theta)
     f = func(np.cos(theta))
-    # print(np.cos(theta))
     c = np.fft.fft(f)
     c = np.real(c)
     c = c[:d+1]
@@ -747,17 +681,21 @@ def cheby_coeff(func, d):
     c = c / (2*d)
     return c
 
+
 def sym_log(x):
     return 0.5*(np.log(1+x) + np.log(1-x))
 
+
 def shift_log(x):
     return np.log(1+x)
+
 
 def even_delta(x):
     if x % 2 == 0:
         return 1.
     else:
         return 0.
+
 
 def odd_delta(x):
     if x % 2 == 1:
@@ -780,80 +718,10 @@ def odd_delta(x):
 #     want = np.array([-np.log(2)] + [-2 * (-1.)**n / n for n in range(1, kmax+1)])
 #     return want
 
+
 def approx_coeffs(func, N):
     zeros = np.array([np.pi * (k+0.5) / N for k in range(N)])
-    want = [((2 - int(n == 0)) / N) * sum([mt.cos(n * zeros[k])* func(mt.cos(zeros[k]))
-                                        for k in range(N)]) for n in range(N)]
+    want = [((2 - int(n == 0)) / N) * sum([mt.cos(n * zeros[k])
+                                           * func(mt.cos(zeros[k]))
+                                           for k in range(N)]) for n in range(N)]
     return want
-
-        
-if __name__ == "__main__":
-    # test = StaggeredPhase(1, 1)
-    # print(test)
-    # test = OA(2, 5)
-    # test = BlockEncode(2, 5)
-    # print(test)
-    # print(np.real(np.round(Operator(test).data[:16, :16], 8)))
-    # print(Operator(test).data)
-    # print(cheby_coeff(np.cos, 4))
-    d = 40               # The degree of the polynomial
-    # arr = cheby_coeff(sym_log, d)
-    # arr = log_coeffs(d)
-    arr = approx_coeffs(sym_log, d)
-    print(len(arr))
-
-    # xx = np.linspace(-1, 1, 100000)
-    # arr = chebyshev.chebfit(xx, np.cos(1 * xx), d)  # using the errorfunction to approximate sign
-    print(arr)
-    # assert False
-    # assert False
-
-    def test(x):
-        return chebyshev.chebval(x, arr)
-    test_val = 0.5
-    # def test(x):
-    #     return taylor_eval(x, arr)
-    print(sym_log(test_val))
-    print(test(test_val))
-    # assert False
-    djtil = int(np.ceil((d+1) / 2))
-    print("dtil = ", djtil)
-    params0 = np.zeros((djtil,))
-    params0[0] = np.pi / 4
-    print(params0)
-    # print(grad(params0, test, d))
-    # assert False
-    # out = minimize(min_func, params0, args=(test, d),
-    #                method='BFGS', jac='3-point',
-    #                options={'gtol':1e-15})
-
-    if (d % 2) == 1:
-        out = minimize(min_func, params0, args=(test, d),
-                       method='BFGS', jac=grad,
-                       options={'gtol':1e-24})
-        print(out)
-        phis = np.array(list(out.x) + list(out.x)[::-1])
-    else:
-        out = minimize(min_func, params0, args=(test, d),
-                       method='BFGS', jac=grad,
-                       options={'gtol':1e-24})
-        print(out)
-        phis = np.array(list(out.x) + list(out.x)[::-1][1:])        
-    print(np.real(output_mat(test_val, out.x, d))[0,0])
-    print(sym_log(test_val))
-    print(test(test_val))
-    assert False
-    
-    # qsp = RealPart(phis, 2, 5)
-    # print(qsp)
-    # # qsp = QuantumSignalProcess(phis, 2, 5)
-    # # print(qsp)
-    # print(Operator(qsp).data[:16, :16])
-    # print(BlockEncode(2, 5))
-    # print(Operator(BlockEncode(2, 5)).data[:16, :16])
-    # lap = Operator(BlockEncode(2, 5)).data[:16, :16]
-    # print(erf(lap))
-    # U, s, Vh = np.linalg.svd(lap)
-    # sign_lap = U.dot(np.diag(erf(s)).dot(Vh))
-    # print(sign_lap)
-    
