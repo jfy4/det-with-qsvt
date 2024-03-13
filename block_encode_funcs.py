@@ -24,38 +24,58 @@ class NearestNeighborOc(qis.QuantumCircuit):
 
         """
         super().__init__()
+        s = 2*dim+1
         if s == 1:
             nblock = 1
         else:
             nblock = int(np.ceil(np.log2(s)))
+        if dim == 1:
+            xreg = qis.QuantumRegister(nsys, name='x')
+            regs = [xreg]
+            self.add_register(xreg)
+        elif dim == 2:
+            xreg = qis.QuantumRegister(nsys, name='x')
+            yreg = qis.QuantumRegister(nsys, name='y')
+            regs = [xreg, yreg]
+            self.add_register(xreg)
+            self.add_register(yreg)
+        elif dim == 3:
+            xreg = qis.QuantumRegister(nsys, name='x')
+            yreg = qis.QuantumRegister(nsys, name='y')
+            zreg = qis.QuantumRegister(nsys, name='z')
+            regs = [xreg, yreg, zreg]
+            self.add_register(xreg)
+            self.add_register(yreg)
+            self.add_register(zreg)
+        elif dim == 4:
+            xreg = qis.QuantumRegister(nsys, name='x')
+            yreg = qis.QuantumRegister(nsys, name='y')
+            zreg = qis.QuantumRegister(nsys, name='z')
+            treg = qis.QuantumRegister(nsys, name='t')
+            regs = [xreg, yreg, zreg, treg]
+            self.add_register(xreg)
+            self.add_register(yreg)
+            self.add_register(zreg)
+            self.add_register(treg)
+        else:
+            raise ValueError("Dimension must be between 1 and 4")
         bin_states = product(['0', '1'], repeat=nblock)
         bin_states = [''.join(x) for x in bin_states]
         # print(bin_states)
-        xreg = qis.QuantumRegister(nsys, name='x')
-        yreg = qis.QuantumRegister(nsys, name='y')
         block = qis.QuantumRegister(nblock, name='block')
         anc = qis.QuantumRegister(1, name='anc')
         anc2 = qis.QuantumRegister(1, name='anc2')
-        self.add_register(xreg)
-        self.add_register(yreg)
         self.add_register(block)
         self.add_register(anc)
         self.add_register(anc2)
-        # for a, bs in enumerate(bin_states[1:(s-1)//2+1]):
-        self.compose(Lshift(nsys).control(num_ctrl_qubits=nblock,
-                                          ctrl_state='000'),
-                     inplace=True, qubits=(*block, *xreg))
-        self.compose(Lshift(nsys).control(num_ctrl_qubits=nblock,
-                                          ctrl_state='001'),
-                     inplace=True, qubits=(*block, *yreg))
-        # for bs in bin_states[(s-1)//2+1:s]:
-        self.compose(Lshift(nsys).inverse().control(num_ctrl_qubits=nblock,
-                                                    ctrl_state='010'),
-                     inplace=True, qubits=(*block, *xreg))
-        self.compose(Lshift(nsys).inverse().control(num_ctrl_qubits=nblock,
-                                                    ctrl_state='011'),
-                     inplace=True, qubits=(*block, *yreg))
-
+        for reg, bs in zip(regs, bin_states[:(s-1)//2]):
+            self.compose(Lshift(nsys).control(num_ctrl_qubits=nblock,
+                                              ctrl_state=bs),
+                         inplace=True, qubits=(*block, *reg))
+        for reg, bs in zip(regs, bin_states[(s-1)//2:]):
+            self.compose(Lshift(nsys).inverse().control(num_ctrl_qubits=nblock,
+                                                        ctrl_state=bs),
+                         inplace=True, qubits=(*block, *reg))
 
 # class Oc(qis.QuantumCircuit):
 #     def __init__(self, nsys, s):
@@ -124,19 +144,46 @@ class FreeScalarOA(qis.QuantumCircuit):
 
         """
         super().__init__()
+        s = 2*dim+1
         if s == 1:
             nblock = 1
         else:
             nblock = int(np.ceil(np.log2(s)))
+        if dim == 1:
+            xreg = qis.QuantumRegister(nsys, name='x')
+            regs = [xreg]
+            self.add_register(xreg)
+        elif dim == 2:
+            xreg = qis.QuantumRegister(nsys, name='x')
+            yreg = qis.QuantumRegister(nsys, name='y')
+            regs = [xreg, yreg]
+            self.add_register(xreg)
+            self.add_register(yreg)
+        elif dim == 3:
+            xreg = qis.QuantumRegister(nsys, name='x')
+            yreg = qis.QuantumRegister(nsys, name='y')
+            zreg = qis.QuantumRegister(nsys, name='z')
+            regs = [xreg, yreg, zreg]
+            self.add_register(xreg)
+            self.add_register(yreg)
+            self.add_register(zreg)
+        elif dim == 4:
+            xreg = qis.QuantumRegister(nsys, name='x')
+            yreg = qis.QuantumRegister(nsys, name='y')
+            zreg = qis.QuantumRegister(nsys, name='z')
+            treg = qis.QuantumRegister(nsys, name='t')
+            regs = [xreg, yreg, zreg, treg]
+            self.add_register(xreg)
+            self.add_register(yreg)
+            self.add_register(zreg)
+            self.add_register(treg)
+        else:
+            raise ValueError("Dimension must be between 1 and 4")
         bin_states = product(['0', '1'], repeat=nblock)
         bin_states = [''.join(x) for x in bin_states]
-        xreg = qis.QuantumRegister(nsys, name='x')
-        yreg = qis.QuantumRegister(nsys, name='y')
         block = qis.QuantumRegister(nblock, name='block')
         anc = qis.QuantumRegister(1, name='anc')
         anc2 = qis.QuantumRegister(1, name='anc2')
-        self.add_register(xreg)
-        self.add_register(yreg)
         self.add_register(block)
         self.add_register(anc)
         self.add_register(anc2)
@@ -144,7 +191,7 @@ class FreeScalarOA(qis.QuantumCircuit):
                                                        ctrl_state='0'),
                      inplace=True, qubits=(block[-1], anc))
         self.compose(RYGate(2*np.arccos((4./9)*(8+0.5**2)-3)).control(num_ctrl_qubits=nblock,
-                                                                    ctrl_state='100'),
+                                                                      ctrl_state=("{0:b}".format(s-1))),
                      inplace=True, qubits=(*block, anc))
         # self.compose(RYGate(0.1).control(num_ctrl_qubits=nblock-1,
         #                                  ctrl_state='01'),
@@ -274,3 +321,8 @@ class Lshift(qis.QuantumCircuit):
             #              qubits=[*sys][i-1:])
             self.compose(MCXGate(num_ctrl_qubits=nsys-i), inplace=True)
         self.x(sys[0])
+
+if __name__ == "__main__":
+    test = FreeScalarOA(2, 2)
+    print(test)
+    
