@@ -12,10 +12,10 @@ if __name__ == "__main__":
     # print(np.real(np.round(Operator(test).data[:16, :16], 8)))
     # print(Operator(test).data)
     # print(cheby_coeff(np.cos, 4))
-    d = 80               # The degree of the polynomial
+    d = 20               # The degree of the polynomial
     # arr = cheby_coeff(sym_log, d)
-    # arr = log_coeffs(d)
-    arr = approx_coeffs(sym_log, d)
+    arr = log_coeffs(d)
+    # arr = approx_coeffs(sym_log, d)
     print(len(arr))
 
     # xx = np.linspace(-1, 1, 100000)
@@ -23,12 +23,13 @@ if __name__ == "__main__":
     print(arr)
     # assert False
     # assert False
+    test_val = -0.1
 
-    def test(x):
-        return chebyshev.chebval(x, arr)
-    test_val = 0.5
     # def test(x):
-    #     return taylor_eval(x, arr)
+    #     return chebyshev.chebval(x, arr)
+    def test(x):
+        return taylor_eval(x, arr)
+
     print(sym_log(test_val))
     print(test(test_val))
     # assert False

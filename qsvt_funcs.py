@@ -34,8 +34,9 @@ def min_func(params, targ_func, d):
     """
     djtil = int(np.ceil((d+1) / 2))
     assert len(params) == djtil
-    cheby_zeros = np.cos([(2*j-1)*np.pi / (4 * djtil)
-                          for j in range(1, djtil+1)])
+    # cheby_zeros = np.cos([(2*j-1)*np.pi / (4 * djtil)
+    #                       for j in range(1, djtil+1)])
+    cheby_zeros = 2*np.random.random(size=djtil)-1
     if (d % 2) == 1:
         # phis = np.array(list(params) + list(params)[::-1])
         Upis = [np.array([[np.exp(1j * params[a]), 0],
@@ -92,8 +93,9 @@ def grad(params, targ_func, d):
     """
     djtil = int(np.ceil((d+1) / 2))
     assert len(params) == djtil
-    cheby_zeros = np.cos([(2*j-1)*np.pi / (4 * djtil)
-                          for j in range(1, djtil+1)])
+    # cheby_zeros = np.cos([(2*j-1)*np.pi / (4 * djtil)
+    #                       for j in range(1, djtil+1)])
+    cheby_zeros = 2*np.random.random(size=djtil)-1
     Upis = np.array([np.array([[np.exp(1j * params[a]), 0],
                                [0, np.exp(-1j * params[a])]])
                      for a in range(len(params))])
@@ -707,21 +709,25 @@ def odd_delta(x):
 #     want = np.array([-np.log(2)] + [-2 * even_delta(n) / n for n in range(1, kmax+1)])
 #     return want
 
-# def log_coeffs(kmax):
-#     want = [0] + [(-1)**(n+1) * even_delta(n) / n for n in range(1, kmax+1)]
-#     return want
 
-# def taylor_eval(x, arr):
-#     want = sum([x**n * arr[n] for n in range(len(arr))])
-#     return want
+def log_coeffs(kmax):
+    want = [0] + [(-1)**(n+1) * even_delta(n) / n for n in range(1, kmax+1)]
+    return want
+
+
+def taylor_eval(x, arr):
+    want = sum([x**n * arr[n] for n in range(len(arr))])
+    return want
+
+
 # def log_coeffs(kmax):
 #     want = np.array([-np.log(2)] + [-2 * (-1.)**n / n for n in range(1, kmax+1)])
 #     return want
 
 
-def approx_coeffs(func, N):
-    zeros = np.array([np.pi * (k+0.5) / N for k in range(N)])
-    want = [((2 - int(n == 0)) / N) * sum([mt.cos(n * zeros[k])
-                                           * func(mt.cos(zeros[k]))
-                                           for k in range(N)]) for n in range(N)]
-    return want
+# def approx_coeffs(func, N):
+#     zeros = np.array([np.pi * (k+0.5) / N for k in range(N)])
+#     want = [((2 - int(n == 0)) / N) * sum([mt.cos(n * zeros[k])
+#                                            * func(mt.cos(zeros[k]))
+#                                            for k in range(N)]) for n in range(N)]
+#     return want
