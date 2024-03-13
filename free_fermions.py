@@ -750,6 +750,11 @@ def cheby_coeff(func, d):
 def sym_log(x):
     return 0.5*(np.log(1+x) + np.log(1-x))
 
+
+def asym_log(x):
+    return 0.5*(np.log(1+x) - np.log(1-x))
+
+
 def shift_log(x):
     return np.log(1+x)
 
@@ -797,9 +802,15 @@ if __name__ == "__main__":
     # print(Operator(test).data)
     # print(cheby_coeff(np.cos, 4))
     d = 40               # The degree of the polynomial
-    # arr = cheby_coeff(sym_log, d)
+    # N = 20
+    # arr = cheby_coeff(np.cos, d)
+    xx = (np.random.random(size=d) * 2 * np.sqrt(np.exp(2)-1)/np.exp(1)) - (np.sqrt(np.exp(2)-1)/np.exp(1))
+    # xx = np.linspace(-1, 1, d)
+    # xx = np.cos([(2*k-1)*np.pi / (2*d) for k in range(1, d+1)])
+    print(xx)
+    arr = chebyshev.chebfit(xx, asym_log(xx), d)
     # arr = log_coeffs(d)
-    arr = approx_coeffs(sym_log, d)
+    # arr = approx_coeffs(sym_log, d)
     print(len(arr))
 
     # xx = np.linspace(-1, 1, 100000)
@@ -813,6 +824,7 @@ if __name__ == "__main__":
     test_val = 0.5
     # def test(x):
     #     return taylor_eval(x, arr)
+    print(asym_log(test_val))
     print(sym_log(test_val))
     print(test(test_val))
     # assert False
@@ -840,6 +852,7 @@ if __name__ == "__main__":
         print(out)
         phis = np.array(list(out.x) + list(out.x)[::-1][1:])        
     print(np.real(output_mat(test_val, out.x, d))[0,0])
+    print(asym_log(test_val))
     print(sym_log(test_val))
     print(test(test_val))
     assert False

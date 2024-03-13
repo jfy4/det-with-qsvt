@@ -34,9 +34,9 @@ def min_func(params, targ_func, d):
     """
     djtil = int(np.ceil((d+1) / 2))
     assert len(params) == djtil
-    # cheby_zeros = np.cos([(2*j-1)*np.pi / (4 * djtil)
-    #                       for j in range(1, djtil+1)])
-    cheby_zeros = 2*np.random.random(size=djtil)-1
+    cheby_zeros = np.cos([(2*j-1)*np.pi / (4 * djtil)
+                          for j in range(1, djtil+1)])
+    # cheby_zeros = 2*np.random.random(size=djtil)-1
     if (d % 2) == 1:
         # phis = np.array(list(params) + list(params)[::-1])
         Upis = [np.array([[np.exp(1j * params[a]), 0],
@@ -93,9 +93,9 @@ def grad(params, targ_func, d):
     """
     djtil = int(np.ceil((d+1) / 2))
     assert len(params) == djtil
-    # cheby_zeros = np.cos([(2*j-1)*np.pi / (4 * djtil)
-    #                       for j in range(1, djtil+1)])
-    cheby_zeros = 2*np.random.random(size=djtil)-1
+    cheby_zeros = np.cos([(2*j-1)*np.pi / (4 * djtil)
+                          for j in range(1, djtil+1)])
+    # cheby_zeros = 2*np.random.random(size=djtil)-1
     Upis = np.array([np.array([[np.exp(1j * params[a]), 0],
                                [0, np.exp(-1j * params[a])]])
                      for a in range(len(params))])
