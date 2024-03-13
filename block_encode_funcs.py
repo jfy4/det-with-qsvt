@@ -229,9 +229,7 @@ class FreeFermionOA(qis.QuantumCircuit):
             pass
         else:
             raise ValueError("dimesion must be 2 or 4")
-            
-
-        
+                    
 
 class Diffusion(qis.QuantumCircuit):
     def __init__(self, nsys, dim):
