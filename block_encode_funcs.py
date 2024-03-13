@@ -20,7 +20,7 @@ class NearestNeighborOc(qis.QuantumCircuit):
         Parameters
         ----------
         nsys : the number of qubits in the 'system'
-        s    : the number of nonzero elements in a row/column
+        dim  : the spacetime dimensions of the lattice
 
         """
         super().__init__()
@@ -140,7 +140,7 @@ class FreeScalarOA(qis.QuantumCircuit):
         Parameters
         ----------
         nsys : the number of qubits in the 'system'
-        s    : the number of nonzero elements in a row/column
+        dim  : the spacetime dimensions of the lattice
 
         """
         super().__init__()
@@ -151,19 +151,19 @@ class FreeScalarOA(qis.QuantumCircuit):
             nblock = int(np.ceil(np.log2(s)))
         if dim == 1:
             xreg = qis.QuantumRegister(nsys, name='x')
-            regs = [xreg]
+            # regs = [xreg]
             self.add_register(xreg)
         elif dim == 2:
             xreg = qis.QuantumRegister(nsys, name='x')
             yreg = qis.QuantumRegister(nsys, name='y')
-            regs = [xreg, yreg]
+            # regs = [xreg, yreg]
             self.add_register(xreg)
             self.add_register(yreg)
         elif dim == 3:
             xreg = qis.QuantumRegister(nsys, name='x')
             yreg = qis.QuantumRegister(nsys, name='y')
             zreg = qis.QuantumRegister(nsys, name='z')
-            regs = [xreg, yreg, zreg]
+            # regs = [xreg, yreg, zreg]
             self.add_register(xreg)
             self.add_register(yreg)
             self.add_register(zreg)
@@ -172,7 +172,7 @@ class FreeScalarOA(qis.QuantumCircuit):
             yreg = qis.QuantumRegister(nsys, name='y')
             zreg = qis.QuantumRegister(nsys, name='z')
             treg = qis.QuantumRegister(nsys, name='t')
-            regs = [xreg, yreg, zreg, treg]
+            # regs = [xreg, yreg, zreg, treg]
             self.add_register(xreg)
             self.add_register(yreg)
             self.add_register(zreg)
@@ -242,64 +242,118 @@ class FreeScalarOA(qis.QuantumCircuit):
             
 
 class Diffusion(qis.QuantumCircuit):
-    def __init__(self, nsys, s):
+    def __init__(self, nsys, dim):
         """
         The quantum circuit for the Diffusion operator.
 
         Parameters
         ----------
         nsys : the number of qubits in the 'system'
-        s    : the number of nonzero elements in a row/column
+        dim  : the spacetime dimensions of the lattice
 
         """
         super().__init__()
+        s = 2*dim+1
         if s == 1:
             nblock = 1
         else:
             nblock = int(np.ceil(np.log2(s)))
-        xreg = qis.QuantumRegister(nsys, name='x')
-        yreg = qis.QuantumRegister(nsys, name='y')
+        if dim == 1:
+            xreg = qis.QuantumRegister(nsys, name='x')
+            # regs = [xreg]
+            self.add_register(xreg)
+        elif dim == 2:
+            xreg = qis.QuantumRegister(nsys, name='x')
+            yreg = qis.QuantumRegister(nsys, name='y')
+            # regs = [xreg, yreg]
+            self.add_register(xreg)
+            self.add_register(yreg)
+        elif dim == 3:
+            xreg = qis.QuantumRegister(nsys, name='x')
+            yreg = qis.QuantumRegister(nsys, name='y')
+            zreg = qis.QuantumRegister(nsys, name='z')
+            # regs = [xreg, yreg, zreg]
+            self.add_register(xreg)
+            self.add_register(yreg)
+            self.add_register(zreg)
+        elif dim == 4:
+            xreg = qis.QuantumRegister(nsys, name='x')
+            yreg = qis.QuantumRegister(nsys, name='y')
+            zreg = qis.QuantumRegister(nsys, name='z')
+            treg = qis.QuantumRegister(nsys, name='t')
+            # regs = [xreg, yreg, zreg, treg]
+            self.add_register(xreg)
+            self.add_register(yreg)
+            self.add_register(zreg)
+            self.add_register(treg)
+        else:
+            raise ValueError("Dimension must be between 1 and 4")
         block = qis.QuantumRegister(nblock, name='block')
         anc = qis.QuantumRegister(1, name='anc')
         anc2 = qis.QuantumRegister(1, name='anc2')
-        self.add_register(xreg)
-        self.add_register(yreg)
         self.add_register(block)
         self.add_register(anc)
         self.add_register(anc2)
         self.h(block)
 
 
-class BlockEncode(qis.QuantumCircuit):
-    def __init__(self, nsys, s):
+class BlockEncodeFreeScalar(qis.QuantumCircuit):
+    def __init__(self, nsys, dim):
         """
         The full quantum circuit for block-encoding.
 
         Parameters
         ----------
         nsys : the number of qubits in the 'system'
-        s    : the number of nonzero elements in a row/column
+        dim  : the spacetime dimensions of the lattice
 
         """
         super().__init__()
+        s = 2*dim+1
         if s == 1:
             nblock = 1
         else:
             nblock = int(np.ceil(np.log2(s)))
-        xreg = qis.QuantumRegister(nsys, name='x')
-        yreg = qis.QuantumRegister(nsys, name='y')
+        if dim == 1:
+            xreg = qis.QuantumRegister(nsys, name='x')
+            # regs = [xreg]
+            self.add_register(xreg)
+        elif dim == 2:
+            xreg = qis.QuantumRegister(nsys, name='x')
+            yreg = qis.QuantumRegister(nsys, name='y')
+            # regs = [xreg, yreg]
+            self.add_register(xreg)
+            self.add_register(yreg)
+        elif dim == 3:
+            xreg = qis.QuantumRegister(nsys, name='x')
+            yreg = qis.QuantumRegister(nsys, name='y')
+            zreg = qis.QuantumRegister(nsys, name='z')
+            # regs = [xreg, yreg, zreg]
+            self.add_register(xreg)
+            self.add_register(yreg)
+            self.add_register(zreg)
+        elif dim == 4:
+            xreg = qis.QuantumRegister(nsys, name='x')
+            yreg = qis.QuantumRegister(nsys, name='y')
+            zreg = qis.QuantumRegister(nsys, name='z')
+            treg = qis.QuantumRegister(nsys, name='t')
+            regs = [xreg, yreg, zreg, treg]
+            self.add_register(xreg)
+            self.add_register(yreg)
+            self.add_register(zreg)
+            self.add_register(treg)
+        else:
+            raise ValueError("Dimension must be between 1 and 4")
         block = qis.QuantumRegister(nblock, name='block')
         anc = qis.QuantumRegister(1, name='anc')
         anc2 = qis.QuantumRegister(1, name='anc2')
-        self.add_register(xreg)
-        self.add_register(yreg)
         self.add_register(block)
         self.add_register(anc)
         self.add_register(anc2)
-        self.compose(Diffusion(nsys, s), inplace=True)
-        self.compose(OA(nsys, s), inplace=True)
-        self.compose(Oc(nsys, s), inplace=True)
-        self.compose(Diffusion(nsys, s), inplace=True)
+        self.compose(Diffusion(nsys, dim), inplace=True)
+        self.compose(FreeScalarOA(nsys, dim), inplace=True)
+        self.compose(NearestNeighborOc(nsys, dim), inplace=True)
+        self.compose(Diffusion(nsys, dim), inplace=True)
             
 
 class Lshift(qis.QuantumCircuit):
@@ -322,7 +376,8 @@ class Lshift(qis.QuantumCircuit):
             self.compose(MCXGate(num_ctrl_qubits=nsys-i), inplace=True)
         self.x(sys[0])
 
+        
 if __name__ == "__main__":
-    test = FreeScalarOA(2, 2)
+    test = BlockEncodeFreeScalar(2, 2)
     print(test)
     
