@@ -84,7 +84,7 @@ def grad(params, targ_func, d):
 
     Returns
     -------
-    val : the value of the cost function.
+    vec : the vector of the gradient.
 
     """
     djtil = int(np.ceil((d+1) / 2))
@@ -303,7 +303,7 @@ class QuantumSignalProcess(qis.QuantumCircuit):
         UA   : the block-encoding circuit
         phis : the phases used in the rotations
         nsys : the number of qubits in the 'system'
-        s    : the number of nonzero elements in a row/column
+        dim  : the spacetime dimension
 
         """
         super().__init__()
@@ -381,7 +381,7 @@ class RealPart(qis.QuantumCircuit):
         ----------
         phis : the phases used in the rotations
         nsys : the number of qubits in the 'system'
-        s    : the number of nonzero elements in a row/column
+        dim  : the spacetime dimension of the lattice
 
         """
         super().__init__()

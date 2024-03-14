@@ -15,7 +15,8 @@ from numpy.polynomial import chebyshev
 class NearestNeighborOc(qis.QuantumCircuit):
     def __init__(self, nsys, dim):
         """
-        The quantum circuit for the Oc operator.
+        The quantum circuit for the Oc operator
+        in the case of nearest neighbors.
 
         Parameters
         ----------
@@ -81,7 +82,8 @@ class NearestNeighborOc(qis.QuantumCircuit):
 class FreeScalarOA(qis.QuantumCircuit):
     def __init__(self, nsys, dim):
         """
-        The quantum circuit for the OA operator.
+        The quantum circuit for the OA operator
+        in the case of a free scalar field.
 
         Parameters
         ----------
@@ -145,7 +147,8 @@ class FreeScalarOA(qis.QuantumCircuit):
 class FreeFermionOA(qis.QuantumCircuit):
     def __init__(self, nsys, dim):
         """
-        The quantum circuit for the OA operator.
+        The quantum circuit for the OA operator
+        for the case of free staggered fermions.
 
         Parameters
         ----------
@@ -290,7 +293,8 @@ class Diffusion(qis.QuantumCircuit):
 class BlockEncodeFreeScalar(qis.QuantumCircuit):
     def __init__(self, nsys, dim):
         """
-        The full quantum circuit for block-encoding.
+        The full quantum circuit for block-encoding
+        the free scalar laplacian.
 
         Parameters
         ----------
@@ -368,7 +372,7 @@ class Lshift(qis.QuantumCircuit):
 class StaggeredPhase(qis.QuantumCircuit):
     def __init__(self, nsys, mu):
         """
-        Computers the staggered phase for a spacetime point.
+        Computes the staggered phase for a spacetime point.
 
         Parameters
         ----------
