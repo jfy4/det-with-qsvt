@@ -14,6 +14,7 @@ import math as mt
 from block_encode_funcs import *
 
 
+# pauli z matrix
 sz = np.array([[1, 0],
                [0, -1]])
 
@@ -37,9 +38,7 @@ def min_func(params, targ_func, d):
     assert len(params) == djtil
     cheby_zeros = np.cos([(2*j-1)*np.pi / (4 * djtil)
                           for j in range(1, djtil+1)])
-    # cheby_zeros = 2*np.random.random(size=djtil)-1
     if (d % 2) == 1:
-        # phis = np.array(list(params) + list(params)[::-1])
         Upis = [np.array([[np.exp(1j * params[a]), 0],
                           [0, np.exp(-1j * params[a])]])
                 for a in range(len(params))]
@@ -52,13 +51,10 @@ def min_func(params, targ_func, d):
             one_mat = reduce(np.dot, prod_list)
             one_mat = start.dot(one_mat)
             one_mat = one_mat.dot(W.dot(one_mat.transpose()))
-            # one_mat = one_mat.dot(one_mat.transpose())
             want += np.abs(np.real(one_mat[0, 0]) - targ_func(cheby_zeros[i]))**2
         want /= djtil
         return want
-        # print(len(phis))
     else:
-        # phis = np.array(list(params) + list(params)[::-1][1:])
         Upis = [np.array([[np.exp(1j * params[a]), 0],
                           [0, np.exp(-1j * params[a])]])
                 for a in range(len(params))]
@@ -71,7 +67,6 @@ def min_func(params, targ_func, d):
             one_mat = reduce(np.dot, prod_list)
             one_mat = start.dot(one_mat.dot(W))
             one_mat = one_mat.dot(Upis[-1].dot(one_mat.transpose()))
-            # one_mat = one_mat.dot(one_mat.transpose())
             want += np.abs(np.real(one_mat[0, 0]) - targ_func(cheby_zeros[i]))**2
         want /= djtil
         return want
@@ -96,16 +91,13 @@ def grad(params, targ_func, d):
     assert len(params) == djtil
     cheby_zeros = np.cos([(2*j-1)*np.pi / (4 * djtil)
                           for j in range(1, djtil+1)])
-    # cheby_zeros = 2*np.random.random(size=djtil)-1
     Upis = np.array([np.array([[np.exp(1j * params[a]), 0],
                                [0, np.exp(-1j * params[a])]])
                      for a in range(len(params))])
-    # print(Upis.shape)
     Thetas = 1j*np.tensordot(sz, Upis, axes=([1], [1])).transpose((1, 0, 2))
     want = np.zeros((len(params),))
     start = Upis[0]
     if (d % 2) == 1:
-        # phis = np.array(list(params) + list(params)[::-1])
         val = 0
         for i in range(djtil):
             W = np.array([[cheby_zeros[i], 1j * np.sqrt(1 - cheby_zeros[i]**2)],
@@ -116,15 +108,12 @@ def grad(params, targ_func, d):
             one_mat = start.dot(one_mat)
             pure_complete = one_mat.dot(W.dot(one_mat.transpose()))
             diff = (np.real(pure_complete[0, 0]) - targ_func(cheby_zeros[i]))
-            # print(diff)
             deriv = (two_mat.dot(W.dot(one_mat.transpose())) +
                      one_mat.dot(W.dot(two_mat.transpose())))
-            # print(two_mat.dot(W.dot(one_mat.transpose())))
             val += diff * np.real(deriv)[0, 0]
         val *= (2 / djtil)
         want[0] = val
         for j in range(1, djtil):
-            # phis = np.array(list(params) + list(params)[::-1])
             val = 0
             for i in range(djtil):
                 W = np.array([[cheby_zeros[i], 1j * np.sqrt(1 - cheby_zeros[i]**2)],
@@ -151,7 +140,6 @@ def grad(params, targ_func, d):
             val *= (2 / djtil)
             want[j] = val
     else:
-        # phis = np.array(list(params) + list(params)[::-1])
         val = 0
         for i in range(djtil):
             W = np.array([[cheby_zeros[i], 1j * np.sqrt(1 - cheby_zeros[i]**2)],
@@ -162,15 +150,12 @@ def grad(params, targ_func, d):
             one_mat = start.dot(one_mat.dot(W))
             pure_complete = one_mat.dot(Upis[-1].dot(one_mat.transpose()))
             diff = (np.real(pure_complete[0, 0]) - targ_func(cheby_zeros[i]))
-            # print(diff)
             deriv = (two_mat.dot(Upis[-1].dot(one_mat.transpose())) +
                      one_mat.dot(Upis[-1].dot(two_mat.transpose())))
-            # print(two_mat.dot(W.dot(one_mat.transpose())))
             val += diff * np.real(deriv)[0, 0]
         val *= (2 / djtil)
         want[0] = val
         for j in range(1, djtil-1):
-            # phis = np.array(list(params) + list(params)[::-1])
             val = 0
             for i in range(djtil):
                 W = np.array([[cheby_zeros[i], 1j * np.sqrt(1 - cheby_zeros[i]**2)],
@@ -244,293 +229,6 @@ def output_mat(x, params, d):
     one_mat = reduce(np.dot, prod_list)
     one_mat = start.dot(one_mat)
     return one_mat
-
-
-# # class Oc(qis.QuantumCircuit):
-# #     def __init__(self, nsys, s):
-# #         super().__init__()
-# #         nblock = int(np.ceil(np.log2(s)))
-# #         bin_states = product(['0', '1'], repeat=nblock)
-# #         bin_states = [''.join(x) for x in bin_states]
-# #         # print(bin_states)
-# #         sys = qis.QuantumRegister(nsys, name='work')
-# #         block = qis.QuantumRegister(nblock, name='block')
-# #         anc = qis.QuantumRegister(1, name='anc')
-# #         self.add_register(anc)
-# #         self.add_register(block)
-# #         self.add_register(sys)
-# #         for a, bs in enumerate(bin_states[1:(s-1)//2+1]):
-# #             self.compose(Lshift(nsys).control(num_ctrl_qubits=nblock,
-# #                                               ctrl_state=bs),
-# #                          inplace=True, qubits=(*block, *sys))
-# #         for bs in bin_states[(s-1)//2+1:s]:
-# #             self.compose(Lshift(nsys).inverse().control(num_ctrl_qubits=nblock,
-# #                                                         ctrl_state=bs),
-# #                          inplace=True, qubits=(*block, *sys))
-
-
-# class Oc(qis.QuantumCircuit):
-#     def __init__(self, nsys, s):
-#         """
-#         The quantum circuit for the Oc operator.
-
-#         Parameters
-#         ----------
-#         nsys : the number of qubits in the 'system'
-#         s    : the number of nonzero elements in a row/column
-
-#         """
-#         super().__init__()
-#         if s == 1:
-#             nblock = 1
-#         else:
-#             nblock = int(np.ceil(np.log2(s)))
-#         bin_states = product(['0', '1'], repeat=nblock)
-#         bin_states = [''.join(x) for x in bin_states]
-#         # print(bin_states)
-#         xreg = qis.QuantumRegister(nsys, name='x')
-#         yreg = qis.QuantumRegister(nsys, name='y')
-#         block = qis.QuantumRegister(nblock, name='block')
-#         anc = qis.QuantumRegister(1, name='anc')
-#         anc2 = qis.QuantumRegister(1, name='anc2')
-#         self.add_register(xreg)
-#         self.add_register(yreg)
-#         self.add_register(block)
-#         self.add_register(anc)
-#         self.add_register(anc2)
-#         # for a, bs in enumerate(bin_states[1:(s-1)//2+1]):
-#         self.compose(Lshift(nsys).control(num_ctrl_qubits=nblock,
-#                                           ctrl_state='000'),
-#                      inplace=True, qubits=(*block, *xreg))
-#         self.compose(Lshift(nsys).control(num_ctrl_qubits=nblock,
-#                                           ctrl_state='001'),
-#                      inplace=True, qubits=(*block, *yreg))
-#         # for bs in bin_states[(s-1)//2+1:s]:
-#         self.compose(Lshift(nsys).inverse().control(num_ctrl_qubits=nblock,
-#                                                     ctrl_state='010'),
-#                      inplace=True, qubits=(*block, *xreg))
-#         self.compose(Lshift(nsys).inverse().control(num_ctrl_qubits=nblock,
-#                                                     ctrl_state='011'),
-#                      inplace=True, qubits=(*block, *yreg))
-
-
-# # class Oc(qis.QuantumCircuit):
-# #     def __init__(self, nsys, s):
-# #         super().__init__()
-# #         if s == 1:
-# #             nblock = 1
-# #         else:
-# #             nblock = int(np.ceil(np.log2(s)))
-# #         bin_states = product(['0', '1'], repeat=nblock)
-# #         bin_states = [''.join(x) for x in bin_states]
-# #         # print(bin_states)
-# #         xreg = qis.QuantumRegister(nsys, name='x')
-# #         block = qis.QuantumRegister(nblock, name='block')
-# #         anc = qis.QuantumRegister(1, name='anc')
-# #         self.add_register(xreg)
-# #         self.add_register(block)
-# #         self.add_register(anc)
-# #         # self.add_register(yreg)
-# #         # for a, bs in enumerate(bin_states[1:(s-1)//2+1]):
-# #         self.compose(Lshift(nsys).control(num_ctrl_qubits=nblock,
-# #                                           ctrl_state='10'),
-# #                      inplace=True, qubits=(*block, *xreg))
-# #         # self.compose(Lshift(nsys).control(num_ctrl_qubits=nblock,
-# #         #                                   ctrl_state='010'),
-# #         #              inplace=True, qubits=(*block, *yreg))
-# #         # # for bs in bin_states[(s-1)//2+1:s]:
-# #         self.compose(Lshift(nsys).inverse().control(num_ctrl_qubits=nblock,
-# #                                                     ctrl_state='01'),
-# #                      inplace=True, qubits=(*block, *xreg))
-# #         # self.compose(Lshift(nsys).inverse().control(num_ctrl_qubits=nblock,
-# #         #                                             ctrl_state='100'),
-# #         #              inplace=True, qubits=(*block, *yreg))
-        
-
-# # class OA(qis.QuantumCircuit):
-# #     def __init__(self, nsys, s):
-# #         super().__init__()
-# #         nblock = int(np.ceil(np.log2(s)))
-# #         bin_states = product(['0', '1'], repeat=nblock)
-# #         bin_states = [''.join(x) for x in bin_states]
-# #         # print(bin_states)
-# #         sys = qis.QuantumRegister(nsys, name='work')
-# #         block = qis.QuantumRegister(nblock, name='block')
-# #         anc = qis.QuantumRegister(1, name='anc')
-# #         self.add_register(anc)
-# #         self.add_register(block)
-# #         self.add_register(sys)
-# #         self.compose(RYGate(0.1).control(num_ctrl_qubits=nblock,
-# #                                          ctrl_state='0'*nblock),
-# #                      inplace=True, qubits=(*block, anc))
-# #         for a, bs in enumerate(bin_states[1:s]):
-# #             self.compose(RYGate(0.1).control(num_ctrl_qubits=nblock,
-# #                                              ctrl_state=bs),
-# #                          inplace=True, qubits=(*block, anc))
-
-
-# class OA(qis.QuantumCircuit):
-#     def __init__(self, nsys, s):
-#         """
-#         The quantum circuit for the OA operator.
-
-#         Parameters
-#         ----------
-#         nsys : the number of qubits in the 'system'
-#         s    : the number of nonzero elements in a row/column
-
-#         """
-#         super().__init__()
-#         if s == 1:
-#             nblock = 1
-#         else:
-#             nblock = int(np.ceil(np.log2(s)))
-#         bin_states = product(['0', '1'], repeat=nblock)
-#         bin_states = [''.join(x) for x in bin_states]
-#         xreg = qis.QuantumRegister(nsys, name='x')
-#         yreg = qis.QuantumRegister(nsys, name='y')
-#         block = qis.QuantumRegister(nblock, name='block')
-#         anc = qis.QuantumRegister(1, name='anc')
-#         anc2 = qis.QuantumRegister(1, name='anc2')
-#         self.add_register(xreg)
-#         self.add_register(yreg)
-#         self.add_register(block)
-#         self.add_register(anc)
-#         self.add_register(anc2)
-#         self.compose(RYGate(2*np.arccos(-4/9)).control(num_ctrl_qubits=1,
-#                                                        ctrl_state='0'),
-#                      inplace=True, qubits=(block[-1], anc))
-#         self.compose(RYGate(2*np.arccos((4./9)*(8+0.5**2)-3)).control(num_ctrl_qubits=nblock,
-#                                                                     ctrl_state='100'),
-#                      inplace=True, qubits=(*block, anc))
-#         # self.compose(RYGate(0.1).control(num_ctrl_qubits=nblock-1,
-#         #                                  ctrl_state='01'),
-#         #              inplace=True, qubits=(*block[1:], anc))
-#         # self.compose(RYGate(0.3).control(num_ctrl_qubits=nblock-2,
-#         #                                  ctrl_state='1'),
-#         #              inplace=True, qubits=(*block[2:], anc))
-#         # self.compose(RYGate(0.1).control(num_ctrl_qubits=nblock,
-#         #                                  ctrl_state='100'),
-#         #              inplace=True, qubits=(*block, anc))
-#         # for a, bs in enumerate(bin_states[1:s]):
-#         #     self.compose(RYGate(-0.1).control(num_ctrl_qubits=nblock,
-#         #                                       ctrl_state=bs),
-#         #                  inplace=True, qubits=(*block, anc))
-
-
-# # class OA(qis.QuantumCircuit):
-# #     def __init__(self, nsys, s):
-# #         super().__init__()
-# #         if s == 1:
-# #             nblock = 1
-# #         else:
-# #             nblock = int(np.ceil(np.log2(s)))
-# #         bin_states = product(['0', '1'], repeat=nblock)
-# #         bin_states = [''.join(x) for x in bin_states]
-# #         # print(bin_states)
-# #         xreg = qis.QuantumRegister(nsys, name='x')
-# #         # yreg = qis.QuantumRegister(nsys, name='y')
-# #         block = qis.QuantumRegister(nblock, name='block')
-# #         anc = qis.QuantumRegister(1, name='anc')
-# #         self.add_register(xreg)
-# #         self.add_register(yreg)
-# #         self.add_register(block)
-# #         self.add_register(anc)
-# #         self.compose(RYGate(0.1).control(num_ctrl_qubits=nblock,
-# #                                          ctrl_state='00'),
-# #                      inplace=True, qubits=(*block, anc))
-# #         self.compose(RYGate(0.3).control(num_ctrl_qubits=nblock,
-# #                                          ctrl_state='10'),
-# #                      inplace=True, qubits=(*block, anc))
-# #         self.compose(RYGate(0.5).control(num_ctrl_qubits=nblock,
-# #                                          ctrl_state='01'),
-# #                      inplace=True, qubits=(*block, anc))
-# #         # for a, bs in enumerate(bin_states[1:s]):
-# #         #     self.compose(RYGate(0.1).control(num_ctrl_qubits=nblock,
-# #         #                                      ctrl_state=bs),
-# #         #                  inplace=True, qubits=(*block, anc))
-            
-
-# class Diffusion(qis.QuantumCircuit):
-#     def __init__(self, nsys, s):
-#         """
-#         The quantum circuit for the Diffusion operator.
-
-#         Parameters
-#         ----------
-#         nsys : the number of qubits in the 'system'
-#         s    : the number of nonzero elements in a row/column
-
-#         """
-#         super().__init__()
-#         if s == 1:
-#             nblock = 1
-#         else:
-#             nblock = int(np.ceil(np.log2(s)))
-#         xreg = qis.QuantumRegister(nsys, name='x')
-#         yreg = qis.QuantumRegister(nsys, name='y')
-#         block = qis.QuantumRegister(nblock, name='block')
-#         anc = qis.QuantumRegister(1, name='anc')
-#         anc2 = qis.QuantumRegister(1, name='anc2')
-#         self.add_register(xreg)
-#         self.add_register(yreg)
-#         self.add_register(block)
-#         self.add_register(anc)
-#         self.add_register(anc2)
-#         self.h(block)
-
-
-# class BlockEncode(qis.QuantumCircuit):
-#     def __init__(self, nsys, s):
-#         """
-#         The full quantum circuit for block-encoding.
-
-#         Parameters
-#         ----------
-#         nsys : the number of qubits in the 'system'
-#         s    : the number of nonzero elements in a row/column
-
-#         """
-#         super().__init__()
-#         if s == 1:
-#             nblock = 1
-#         else:
-#             nblock = int(np.ceil(np.log2(s)))
-#         xreg = qis.QuantumRegister(nsys, name='x')
-#         yreg = qis.QuantumRegister(nsys, name='y')
-#         block = qis.QuantumRegister(nblock, name='block')
-#         anc = qis.QuantumRegister(1, name='anc')
-#         anc2 = qis.QuantumRegister(1, name='anc2')
-#         self.add_register(xreg)
-#         self.add_register(yreg)
-#         self.add_register(block)
-#         self.add_register(anc)
-#         self.add_register(anc2)
-#         self.compose(Diffusion(nsys, s), inplace=True)
-#         self.compose(OA(nsys, s), inplace=True)
-#         self.compose(Oc(nsys, s), inplace=True)
-#         self.compose(Diffusion(nsys, s), inplace=True)
-            
-
-# class Lshift(qis.QuantumCircuit):
-#     def __init__(self, nsys):
-#         """
-#         The quantum circuit for modular addition.
-
-#         Parameters
-#         ----------
-#         nsys : the number of qubits in the 'system'
-
-#         """
-
-#         super().__init__()
-#         sys = qis.QuantumRegister(nsys, name='work')
-#         self.add_register(sys)
-#         for i in range(1, nsys):
-#             # self.compose(MCXGate(num_ctrl_qubits=nsys-i), inplace=True,
-#             #              qubits=[*sys][i-1:])
-#             self.compose(MCXGate(num_ctrl_qubits=nsys-i), inplace=True)
-#         self.x(sys[0])
 
 
 class Uproj(qis.QuantumCircuit):
@@ -667,10 +365,6 @@ class RealPart(qis.QuantumCircuit):
 
         """
         super().__init__()
-        # if (d % 2) == 1:
-        #     phis = np.array(list(params) + list(params)[::-1])
-        # else:
-        #     phis = np.array(list(params) + list(params)[::-1][1:])
         s = 2*dim+1
         phis_minus = -1*np.asarray(phis)
         phis_minus[0] = phis_minus[0] + np.pi/2
@@ -729,32 +423,35 @@ class RealPart(qis.QuantumCircuit):
         self.h(anc3)
 
 
-# def cheby_coeff(func, d):
-#     """
-#     Computing the chebyshev coeffcients.
+def cheby_coeff(func, d):
+    """
+    Computing the chebyshev coeffcients.
 
-#     """
-#     theta = np.zeros((2*d,))
-#     for i in range(2*d):
-#         theta[i] = i*np.pi/d
-#     f = func(np.cos(theta))
-#     c = np.fft.fft(f)
-#     c = np.real(c)
-#     c = c[:d+1]
-#     c[1:-1] = c[1:-1]*2
-#     c = c / (2*d)
-#     return c
+    """
+    theta = np.zeros((2*d,))
+    for i in range(2*d):
+        theta[i] = i*np.pi/d
+    f = func(np.cos(theta))
+    c = np.fft.fft(f)
+    c = np.real(c)
+    c = c[:d+1]
+    c[1:-1] = c[1:-1]*2
+    c = c / (2*d)
+    return c
 
 
 def sym_log(x):
+    """ The symmetric part of log(1+x)."""
     return 0.5*(np.log(1+x) + np.log(1-x))
 
 
 def asym_log(x):
+    """ the anti-symmetric part of log(1+x)."""
     return 0.5*(np.log(1+x) + np.log(1-x))
 
 
 def shift_log(x):
+    """ log(1+x)"""
     return np.log(1+x)
 
 
