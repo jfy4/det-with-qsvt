@@ -447,7 +447,7 @@ def sym_log(x):
 
 def asym_log(x):
     """ the anti-symmetric part of log(1+x)."""
-    return 0.5*(np.log(1+x) + np.log(1-x))
+    return 0.5*(np.log(1+x) - np.log(1-x))
 
 
 def shift_log(x):
