@@ -58,9 +58,9 @@ if __name__ == "__main__":
     # print(np.cos(test_val))
     print(qsvt.sym_log(test_val))
     print(test(test_val))
-    phis[0] = phis[0] + np.pi/4
-    phis[-1] = phis[-1] + np.pi/4
-    phis[1:-1] = phis[1:-1] + np.pi/2
+    # phis[0] = phis[0] + np.pi/4
+    # phis[-1] = phis[-1] + np.pi/4
+    # phis[1:-1] = phis[1:-1] + np.pi/2
     # assert False
 
     num_system_qubits = 2

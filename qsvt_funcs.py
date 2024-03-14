@@ -348,6 +348,9 @@ class QuantumSignalProcess(qis.QuantumCircuit):
         self.add_register(block)
         self.add_register(anc)
         self.add_register(anc2)
+        phis[0] = phis[0] + np.pi/4
+        phis[-1] = phis[-1] + np.pi/4
+        phis[1:-1] = phis[1:-1] + np.pi/2
         phi_flip = phis[::-1]
         self.h(anc2)
         if len(phi_flip) % 2 == 0:
