@@ -6,7 +6,7 @@ from scipy.optimize import minimize, HessianUpdateStrategy
 from functools import reduce
 from scipy.special import erf
 import qiskit as qis
-from qiskit.circuit.library import MCXGate, RYGate
+from qiskit.circuit.library import MCXGate, RYGate, XGate
 from qiskit.quantum_info import Operator
 from itertools import product
 from numpy.polynomial import chebyshev
@@ -285,9 +285,12 @@ class Uproj(qis.QuantumCircuit):
         self.add_register(block)
         self.add_register(anc)
         self.add_register(anc2)
-        self.cx(anc, anc2, ctrl_state='0')
+        # self.cx(anc, anc2, ctrl_state='0')
+        # self.rz(2*angle, anc2)
+        # self.cx(anc, anc2, ctrl_state='0')
+        self.compose(XGate().control(num_ctrl_qubits=(len(block)+1), ctrl_state='0'*(len(block)+1)), inplace=True, qubits=(*block, *anc, *anc2))
         self.rz(2*angle, anc2)
-        self.cx(anc, anc2, ctrl_state='0')
+        self.compose(XGate().control(num_ctrl_qubits=(len(block)+1), ctrl_state='0'*(len(block)+1)), inplace=True, qubits=(*block, *anc, *anc2))
 
 
 class QuantumSignalProcess(qis.QuantumCircuit):
@@ -345,11 +348,25 @@ class QuantumSignalProcess(qis.QuantumCircuit):
         self.add_register(block)
         self.add_register(anc)
         self.add_register(anc2)
-        # UA = BlockEncode(nsys, s)
-        for i in range(len(phis)-1, 0, -1):
-            self.compose(Uproj(phis[i], nsys, dim), inplace=True)
+        phi_flip = phis[::-1]
+        self.h(anc2)
+        if len(phi_flip) % 2 == 0:
+            for i in range(len(phi_flip)//2-1):
+                self.compose(Uproj(phi_flip[2*i], nsys, dim), inplace=True)
+                self.compose(UA, inplace=True)
+                self.compose(Uproj(phi_flip[2*i+1], nsys, dim), inplace=True)
+                self.compose(UA.inverse(), inplace=True)
+            self.compose(Uproj(phi_flip[-2], nsys, dim), inplace=True)
             self.compose(UA, inplace=True)
-        self.compose(Uproj(phis[0], nsys, dim), inplace=True)
+            self.compose(Uproj(phi_flip[-1], nsys, dim), inplace=True)
+        else:
+            for i in range(len(phi_flip)//2):
+                self.compose(Uproj(phi_flip[2*i], nsys, dim), inplace=True)
+                self.compose(UA, inplace=True)
+                self.compose(Uproj(phi_flip[2*i+1], nsys, dim), inplace=True)
+                self.compose(UA.inverse(), inplace=True)
+            self.compose(Uproj(phi_flip[-1], nsys, dim), inplace=True)
+        self.h(anc2)
 
 
 class RealPart(qis.QuantumCircuit):
@@ -497,5 +514,5 @@ def shift_log(x):
 
 if __name__ == "__main__":
     ua = BlockEncodeFreeScalar(2, 2)
-    test = RealPart(ua, range(4), 2, 2)
+    test = QuantumSignalProcess(ua, range(2), 2, 2)
     print(test)
