@@ -17,13 +17,13 @@ from numpy.polynomial import chebyshev
 
 if __name__ == "__main__":
     d = 40               # The degree of the polynomial
-    # xx = (np.random.random(size=d) * 2 *
-    #       np.sqrt(np.exp(2)-1)/np.exp(1)) - (np.sqrt(np.exp(2)-1)/np.exp(1))
-    xx = 2*np.random.random(size=d)-1
+    xx = (np.random.random(size=d) * 2 *
+          np.sqrt(np.exp(2)-1)/np.exp(1)) - (np.sqrt(np.exp(2)-1)/np.exp(1))
+    # xx = 2*np.random.random(size=d)-1
     print(xx)
     print(qsvt.sym_log(xx))
-    # arr = chebyshev.chebfit(xx, qsvt.sym_log(xx), d)
-    arr = chebyshev.chebfit(xx, np.cos(xx), d)
+    arr = chebyshev.chebfit(xx, qsvt.sym_log(xx), d)
+    # arr = chebyshev.chebfit(xx, np.cos(xx), d)
     print(arr)
     # assert False
 
@@ -58,6 +58,9 @@ if __name__ == "__main__":
     # print(np.cos(test_val))
     print(qsvt.sym_log(test_val))
     print(test(test_val))
+    phis[0] = phis[0] + np.pi/4
+    phis[-1] = phis[-1] + np.pi/4
+    phis[1:-1] = phis[1:-1] + np.pi/2
     # assert False
 
     num_system_qubits = 2
@@ -70,6 +73,6 @@ if __name__ == "__main__":
     # print(qc)
     # print(phis[::-1])
     print((Operator(qc).data[:16, :16]))
-    # print(0.5 * (logm(np.eye(16) + scalar_lap) + logm(np.eye(16) - scalar_lap)))
-    print(cosm(scalar_lap))
+    print(0.5 * (logm(np.eye(16) + scalar_lap) + logm(np.eye(16) - scalar_lap)))
+    # print(cosm(scalar_lap))
     
