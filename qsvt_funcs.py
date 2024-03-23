@@ -2,17 +2,17 @@
 
 import numpy as np
 # import math as mt
-from scipy.optimize import minimize, HessianUpdateStrategy
+# from scipy.optimize import minimize
 from functools import reduce
 from scipy.special import erf
 import qiskit as qis
-from qiskit.circuit.library import MCXGate, RYGate, XGate
-from qiskit.quantum_info import Operator
-from itertools import product
-from numpy.polynomial import chebyshev
-import math as mt
-from block_encode_funcs import *
-
+from qiskit.circuit.library import XGate
+# from qiskit.quantum_info import Operator
+# from itertools import product
+# from numpy.polynomial import chebyshev
+# import math as mt
+# from block_encode_funcs import *
+import block_encode_funcs as bef
 
 # pauli z matrix
 sz = np.array([[1, 0],
@@ -285,9 +285,6 @@ class Uproj(qis.QuantumCircuit):
         self.add_register(block)
         self.add_register(anc)
         self.add_register(anc2)
-        # self.cx(anc, anc2, ctrl_state='0')
-        # self.rz(2*angle, anc2)
-        # self.cx(anc, anc2, ctrl_state='0')
         self.compose(XGate().control(num_ctrl_qubits=(len(block)+1), ctrl_state='0'*(len(block)+1)), inplace=True, qubits=(*block, *anc, *anc2))
         self.rz(2*angle, anc2)
         self.compose(XGate().control(num_ctrl_qubits=(len(block)+1), ctrl_state='0'*(len(block)+1)), inplace=True, qubits=(*block, *anc, *anc2))
@@ -354,7 +351,9 @@ class QuantumSignalProcess(qis.QuantumCircuit):
         phi_flip = phis[::-1]
         self.h(anc2)
         if len(phi_flip) % 2 == 0:
+            # print("even number of phases, d should be odd")
             for i in range(len(phi_flip)//2-1):
+                # print(2*i, 2*i+1, len(phi_flip))
                 self.compose(Uproj(phi_flip[2*i], nsys, dim), inplace=True)
                 self.compose(UA, inplace=True)
                 self.compose(Uproj(phi_flip[2*i+1], nsys, dim), inplace=True)
@@ -363,7 +362,9 @@ class QuantumSignalProcess(qis.QuantumCircuit):
             self.compose(UA, inplace=True)
             self.compose(Uproj(phi_flip[-1], nsys, dim), inplace=True)
         else:
+            # print("odd number of phases, d should be even")
             for i in range(len(phi_flip)//2):
+                # print(2*i, 2*i+1, len(phi_flip))
                 self.compose(Uproj(phi_flip[2*i], nsys, dim), inplace=True)
                 self.compose(UA, inplace=True)
                 self.compose(Uproj(phi_flip[2*i+1], nsys, dim), inplace=True)
@@ -516,6 +517,6 @@ def shift_log(x):
 #     return want
 
 if __name__ == "__main__":
-    ua = BlockEncodeFreeScalar(2, 2)
+    ua = bef.BlockEncodeFreeScalar(2, 2)
     test = QuantumSignalProcess(ua, range(2), 2, 2)
     print(test)

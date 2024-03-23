@@ -2,14 +2,14 @@
 
 import numpy as np
 # import math as mt
-from scipy.optimize import minimize, HessianUpdateStrategy
-from functools import reduce
-from scipy.special import erf
+# from scipy.optimize import minimize, HessianUpdateStrategy
+# from functools import reduce
+# from scipy.special import erf
 import qiskit as qis
 from qiskit.circuit.library import MCXGate, RYGate
-from qiskit.quantum_info import Operator
+# from qiskit.quantum_info import Operator
 from itertools import product
-from numpy.polynomial import chebyshev
+# from numpy.polynomial import chebyshev
 
 
 class NearestNeighborOc(qis.QuantumCircuit):
@@ -331,7 +331,7 @@ class BlockEncodeFreeScalar(qis.QuantumCircuit):
             yreg = qis.QuantumRegister(nsys, name='y')
             zreg = qis.QuantumRegister(nsys, name='z')
             treg = qis.QuantumRegister(nsys, name='t')
-            regs = [xreg, yreg, zreg, treg]
+            # regs = [xreg, yreg, zreg, treg]
             self.add_register(xreg)
             self.add_register(yreg)
             self.add_register(zreg)
@@ -409,7 +409,7 @@ class StaggeredPhase(qis.QuantumCircuit):
                 self.x(q)
                 self.rz(np.pi * 2**n, q)
 
-        
+
 if __name__ == "__main__":
     test = FreeFermionOA(2, 1)
     print(test)
