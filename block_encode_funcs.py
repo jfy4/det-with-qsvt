@@ -7,7 +7,7 @@ import numpy as np
 # from scipy.special import erf
 import qiskit as qis
 from qiskit.circuit.library import MCXGate, RYGate
-# from qiskit.quantum_info import Operator
+from qiskit.quantum_info import Operator
 from itertools import product
 # from numpy.polynomial import chebyshev
 
@@ -411,6 +411,10 @@ class StaggeredPhase(qis.QuantumCircuit):
 
 
 if __name__ == "__main__":
-    test = FreeFermionOA(2, 1)
+    test = FreeFermionOA(2, 2)
     print(test)
+    arr = Operator(test).data
+    print(np.allclose(arr, arr.transpose().conjugate()))
+
+   
     
