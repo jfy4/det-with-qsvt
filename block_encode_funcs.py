@@ -136,12 +136,10 @@ class FreeScalarOA(qis.QuantumCircuit):
         self.add_register(anc)
         self.add_register(anc2)
         # below I think only works for dim=1, dim=2 and dim=4
-        self.compose(RYGate(2*np.arccos(-4/9)).control(num_ctrl_qubits=1,
-                                                       ctrl_state='0'),
-                     inplace=True, qubits=(block[-1], anc))
-        self.compose(RYGate(2*np.arccos((4./9)*(8+0.5**2)-3)).control(num_ctrl_qubits=nblock,
-                                                                      ctrl_state=("{0:b}".format(s-1))),
-                     inplace=True, qubits=(*block, anc))
+        # self.compose(RYGate(2*np.arccos(-4/9)).control(num_ctrl_qubits=1, ctrl_state='0'), inplace=True, qubits=(block[-1], anc))
+        self.compose(RYGate(2*np.arccos(-0.1)).control(num_ctrl_qubits=1, ctrl_state='0'), inplace=True, qubits=(block[-1], anc))
+        self.compose(RYGate(2*np.arccos(0.8)).control(num_ctrl_qubits=nblock, ctrl_state=("{0:b}".format(s-1))), inplace=True, qubits=(*block, anc))
+        # self.compose(RYGate(2*np.arccos((4 + bare_mass**2)-3)).control(num_ctrl_qubits=nblock, ctrl_state=("{0:b}".format(s-1))), inplace=True, qubits=(*block, anc))
 
 
 class FreeFermionOA(qis.QuantumCircuit):

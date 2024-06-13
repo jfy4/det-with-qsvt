@@ -4,7 +4,8 @@ import numpy as np
 # import math as mt
 # from scipy.optimize import minimize
 from functools import reduce
-from scipy.special import erf
+from scipy.special import erf, iv, eval_chebyt
+from numpy.polynomial.chebyshev import chebval
 import qiskit as qis
 from qiskit.circuit.library import XGate
 # from qiskit.quantum_info import Operator
@@ -13,10 +14,17 @@ from qiskit.circuit.library import XGate
 # import math as mt
 # from block_encode_funcs import *
 import block_encode_funcs as bef
+import matplotlib.pyplot as plt
+
 
 # pauli z matrix
 sz = np.array([[1, 0],
                [0, -1]])
+NN = 50
+MM = int(np.ceil((NN+1) / 2))
+cheby_zeros = np.random.random(size=MM)*(1-0.23611111) + 0.23611111
+
+# cheby_zeros = np.array(list(np.random.random(size=MM)*(1-0.23611111) + 0.23611111) + list(-1 * (np.random.random(size=MM)*(1-0.23611111) + 0.23611111)))
 
 
 def min_func(params, targ_func, d):
@@ -36,15 +44,15 @@ def min_func(params, targ_func, d):
     """
     djtil = int(np.ceil((d+1) / 2))
     assert len(params) == djtil
-    cheby_zeros = np.cos([(2*j-1)*np.pi / (4 * djtil)
-                          for j in range(1, djtil+1)])
+    # cheby_zeros = np.cos([(2*j-1)*np.pi / (4 * djtil)
+    #                       for j in range(1, djtil+1)])
     if (d % 2) == 1:
         Upis = [np.array([[np.exp(1j * params[a]), 0],
                           [0, np.exp(-1j * params[a])]])
                 for a in range(len(params))]
         want = 0
         start = Upis[0]
-        for i in range(djtil):
+        for i in range(MM):
             W = np.array([[cheby_zeros[i], 1j * np.sqrt(1 - cheby_zeros[i]**2)],
                           [1j * np.sqrt(1 - cheby_zeros[i]**2), cheby_zeros[i]]])
             prod_list = [W.dot(Upis[a]) for a in range(1, len(params))]
@@ -52,7 +60,7 @@ def min_func(params, targ_func, d):
             one_mat = start.dot(one_mat)
             one_mat = one_mat.dot(W.dot(one_mat.transpose()))
             want += np.abs(np.real(one_mat[0, 0]) - targ_func(cheby_zeros[i]))**2
-        want /= djtil
+        want /= MM
         return want
     else:
         Upis = [np.array([[np.exp(1j * params[a]), 0],
@@ -60,7 +68,7 @@ def min_func(params, targ_func, d):
                 for a in range(len(params))]
         want = 0
         start = Upis[0]
-        for i in range(djtil):
+        for i in range(MM):
             W = np.array([[cheby_zeros[i], 1j * np.sqrt(1 - cheby_zeros[i]**2)],
                           [1j * np.sqrt(1 - cheby_zeros[i]**2), cheby_zeros[i]]])
             prod_list = [W.dot(Upis[a]) for a in range(1, len(params)-1)]
@@ -68,7 +76,7 @@ def min_func(params, targ_func, d):
             one_mat = start.dot(one_mat.dot(W))
             one_mat = one_mat.dot(Upis[-1].dot(one_mat.transpose()))
             want += np.abs(np.real(one_mat[0, 0]) - targ_func(cheby_zeros[i]))**2
-        want /= djtil
+        want /= MM
         return want
 
 
@@ -89,8 +97,8 @@ def grad(params, targ_func, d):
     """
     djtil = int(np.ceil((d+1) / 2))
     assert len(params) == djtil
-    cheby_zeros = np.cos([(2*j-1)*np.pi / (4 * djtil)
-                          for j in range(1, djtil+1)])
+    # cheby_zeros = np.cos([(2*j-1)*np.pi / (4 * djtil)
+    #                       for j in range(1, djtil+1)])
     Upis = np.array([np.array([[np.exp(1j * params[a]), 0],
                                [0, np.exp(-1j * params[a])]])
                      for a in range(len(params))])
@@ -99,7 +107,7 @@ def grad(params, targ_func, d):
     start = Upis[0]
     if (d % 2) == 1:
         val = 0
-        for i in range(djtil):
+        for i in range(MM):
             W = np.array([[cheby_zeros[i], 1j * np.sqrt(1 - cheby_zeros[i]**2)],
                           [1j * np.sqrt(1 - cheby_zeros[i]**2), cheby_zeros[i]]])
             prod_list = [W.dot(Upis[a]) for a in range(1, len(params))]
@@ -111,11 +119,11 @@ def grad(params, targ_func, d):
             deriv = (two_mat.dot(W.dot(one_mat.transpose())) +
                      one_mat.dot(W.dot(two_mat.transpose())))
             val += diff * np.real(deriv)[0, 0]
-        val *= (2 / djtil)
+        val *= (2 / MM)
         want[0] = val
         for j in range(1, djtil):
             val = 0
-            for i in range(djtil):
+            for i in range(MM):
                 W = np.array([[cheby_zeros[i], 1j * np.sqrt(1 - cheby_zeros[i]**2)],
                               [1j * np.sqrt(1 - cheby_zeros[i]**2), cheby_zeros[i]]])
                 prod_list = [W.dot(Upis[a]) for a in range(1, len(params))]
@@ -137,11 +145,11 @@ def grad(params, targ_func, d):
                 deriv = (two_mat.dot(W.dot(one_mat.transpose())) +
                          one_mat.dot(W.dot(two_mat.transpose())))
                 val += diff * np.real(deriv)[0, 0]
-            val *= (2 / djtil)
+            val *= (2 / MM)
             want[j] = val
     else:
         val = 0
-        for i in range(djtil):
+        for i in range(MM):
             W = np.array([[cheby_zeros[i], 1j * np.sqrt(1 - cheby_zeros[i]**2)],
                           [1j * np.sqrt(1 - cheby_zeros[i]**2), cheby_zeros[i]]])
             prod_list = [W.dot(Upis[a]) for a in range(1, len(params)-1)]
@@ -153,11 +161,11 @@ def grad(params, targ_func, d):
             deriv = (two_mat.dot(Upis[-1].dot(one_mat.transpose())) +
                      one_mat.dot(Upis[-1].dot(two_mat.transpose())))
             val += diff * np.real(deriv)[0, 0]
-        val *= (2 / djtil)
+        val *= (2 / MM)
         want[0] = val
         for j in range(1, djtil-1):
             val = 0
-            for i in range(djtil):
+            for i in range(MM):
                 W = np.array([[cheby_zeros[i], 1j * np.sqrt(1 - cheby_zeros[i]**2)],
                               [1j * np.sqrt(1 - cheby_zeros[i]**2), cheby_zeros[i]]])
                 prod_list = [W.dot(Upis[a]) for a in range(1, len(params)-1)]
@@ -179,10 +187,10 @@ def grad(params, targ_func, d):
                 deriv = (two_mat.dot(Upis[-1].dot(one_mat.transpose())) +
                          one_mat.dot(Upis[-1].dot(two_mat.transpose())))
                 val += diff * np.real(deriv)[0, 0]
-            val *= (2 / djtil)
+            val *= (2 / MM)
             want[j] = val
         val = 0
-        for i in range(djtil):
+        for i in range(MM):
             W = np.array([[cheby_zeros[i], 1j * np.sqrt(1 - cheby_zeros[i]**2)],
                           [1j * np.sqrt(1 - cheby_zeros[i]**2), cheby_zeros[i]]])
             prod_list = [W.dot(Upis[a]) for a in range(1, len(params)-1)]
@@ -194,7 +202,7 @@ def grad(params, targ_func, d):
             two_mat = start.dot(prod_list_left.dot(W))
             deriv = two_mat.dot(Thetas[-1, :, :].dot(one_mat.transpose()))
             val += diff * np.real(deriv)[0, 0]
-        val *= (2 / djtil)
+        val *= (2 / MM)
         want[-1] = val
     return want
 
@@ -363,8 +371,14 @@ class QuantumSignalProcess(qis.QuantumCircuit):
             self.compose(Uproj(phi_flip[-1], nsys, dim), inplace=True)
         else:
             # print("odd number of phases, d should be even")
-            for i in range(len(phi_flip)//2):
+            for i in range((len(phi_flip)-1)//2):
                 # print(2*i, 2*i+1, len(phi_flip))
+            #     self.compose(UA, inplace=True)
+            #     self.compose(Uproj(phi_flip[2*i], nsys, dim), inplace=True)
+            #     self.compose(UA.inverse(), inplace=True)
+            #     self.compose(Uproj(phi_flip[2*i+1], nsys, dim), inplace=True)
+            # self.compose(UA, inplace=True)
+            # self.compose(Uproj(phi_flip[-1], nsys, dim), inplace=True)
                 self.compose(Uproj(phi_flip[2*i], nsys, dim), inplace=True)
                 self.compose(UA, inplace=True)
                 self.compose(Uproj(phi_flip[2*i+1], nsys, dim), inplace=True)
@@ -476,6 +490,67 @@ def shift_log(x):
     return np.log(1+x)
 
 
+# def abs_log(x, norm):
+#     """ log(|x|) / N"""
+#     return np.log(np.abs(x)) / norm
+
+def rect(x, d):
+    return 1 + 0.5 * (np.sign(x-d) + np.sign(-x-d))
+
+
+def abs_log(x):
+    """ log(|x|) / N"""
+    return (np.log(np.abs(x)) / np.log(1/0.23611111))
+
+# def abs_log(x):
+#     """ log(|x|) / N"""
+#     want = (np.log(np.abs(x)) / np.log(1/0.2))
+#     idx = np.abs(x) > 0.2
+#     final = np.where(idx, want, -1.)
+#     return final
+    # if np.abs(x) > 0.23611111:
+    #     return (np.log(np.abs(x)) / np.log(1/0.23611111))
+    # else:
+    #     return np.log(1/0.23611111)
+    # return (np.log(np.abs(x)) / np.log(1/0.23611111))
+
+
+def my_erf(x, kappa, epsilon):
+    k = np.sqrt(np.log(2 / (np.pi * epsilon**2)) * 2) / kappa
+    return erf(k * x)
+
+
+def poly_erf(x, k, n, shift=0):
+    front = 2 * (2*k) * np.exp(- (2*k)**2 / 2) / np.sqrt(np.pi)
+    first = iv(0, (2*k)**2 / 2) * (x-shift)/2
+    series = np.array([iv(j, (2*k)**2 / 2) * (-1.)**j * (eval_chebyt(2*j+1, (x-shift)/2) / (2*j+1) - eval_chebyt(2*j-1, (x-shift)/2) / (2*j-1)) for j in range(1, (n-1)//2 + 1)])
+    # print(series)
+    return front * (first + np.sum(series, axis=0))
+
+
+# def poly_sign(x, kappa, n, shift=0):
+#     k = np.sqrt(np.log(2 / (np.pi * epsilon**2)) * 2) / kappa
+#     return poly_erf(x, k, n, shift=shift)
+
+
+def poly_rect(x, k, n, shift=0):
+    return 0.5 * (1. + poly_erf(x, k, n+1, shift=shift) + 1. + poly_erf(-1*x, k, n+1, shift=shift))
+
+# def poly_log_rect(x, k, n, shift=0):
+#     return 0.5 * (np.log(1/x)*poly_erf(x, k, n+1, shift=shift) + np.log(-1/x) * poly_erf(-1*x, k, n+1, shift=shift))
+
+
+# def poly_abs_log(x, d):
+#     first = -np.log(2)
+#     series = [np.sign(x) * 2 * (-1)**(n+1) / n * eval_chebyt(n, np.abs(x)-1) for n in range(1, d+1)]
+#     return first + np.sum(series, axis=0)
+
+def poly_abs_log(x, d):
+    first = -np.log(2)
+    series = [2 * (-1)**(n+1) / n * eval_chebyt(n, np.abs(x)-1) for n in range(1, d+1)]
+    return first + np.sum(series, axis=0)
+
+
 # def even_delta(x):
 #     if x % 2 == 0:
 #         return 1.
@@ -517,6 +592,12 @@ def shift_log(x):
 #     return want
 
 if __name__ == "__main__":
-    ua = bef.BlockEncodeFreeScalar(2, 2)
-    test = QuantumSignalProcess(ua, range(2), 2, 2)
-    print(test)
+    # ua = bef.BlockEncodeFreeScalar(2, 2)
+    # test = QuantumSignalProcess(ua, range(2), 2, 2)
+    # print(test)
+    xx = np.linspace(-1, 1, 1000)
+    # plt.plot(xx, poly_rect(xx, 5, 20, shift=0.5))
+    # plt.plot(xx, (-1/np.log(np.abs(1/xx)))*poly_erf(xx, 5, 20, shift=0.5))
+    # plt.plot(xx, (-1/np.log(np.abs(1/xx)))*poly_erf(-xx, 5, 20, shift=0.5))
+    plt.plot(xx, (-1/np.log(np.abs(1/xx)))*poly_erf(-xx, 5, 40, shift=0.5) + (-1/np.log(np.abs(1/xx)))*poly_erf(xx, 5, 40, shift=0.5))
+    plt.show()
