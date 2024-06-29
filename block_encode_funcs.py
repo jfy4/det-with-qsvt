@@ -6,6 +6,8 @@ import numpy as np
 # from functools import reduce
 # from scipy.special import erf
 import qiskit as qis
+from qiskit_aer import Aer
+from scipy.linalg import sqrtm
 from scipy.special import binom
 from qiskit.circuit.library import MCXGate, RYGate
 from qiskit.quantum_info import Operator
@@ -166,13 +168,6 @@ class NtNNOc(qis.QuantumCircuit):
         self.add_register(block)
         self.add_register(lnreg)
         self.add_register(anc)
-        self.add_register(anc2)
-        # block = qis.QuantumRegister(nblock, name='block')
-        # anc = qis.QuantumRegister(1, name='anc')
-        # anc2 = qis.QuantumRegister(1, name='anc2')
-        # # anc3 = qis.QuantumRegister(1, name='anc3
-        # self.add_register(block)
-        # self.add_register(anc)
         # self.add_register(anc2)
         plus2 = Lshift(nsys).compose(Lshift(nsys))
         minus2 = Lshift(nsys).inverse().compose(Lshift(nsys).inverse())
@@ -282,8 +277,9 @@ class FreeScalarOA(qis.QuantumCircuit):
         # below I think only works for dim=1, dim=2 and dim=4
         # self.compose(RYGate(2*np.arccos(-4/9)).control(num_ctrl_qubits=1, ctrl_state='0'), inplace=True, qubits=(block[-1], anc))
         self.compose(RYGate(2*np.arccos(-0.1)).control(num_ctrl_qubits=1, ctrl_state='0'), inplace=True, qubits=(block[-1], anc))
-        self.compose(RYGate(2*np.arccos(0.8)).control(num_ctrl_qubits=nblock, ctrl_state=("{0:b}".format(s-1))), inplace=True, qubits=(*block, anc))
-        # self.compose(RYGate(2*np.arccos((4 + bare_mass**2)-3)).control(num_ctrl_qubits=nblock, ctrl_state=("{0:b}".format(s-1))), inplace=True, qubits=(*block, anc))
+        # self.compose(RYGate(2*np.arccos(0.8)).control(num_ctrl_qubits=nblock, ctrl_state=("{0:b}".format(s-1))), inplace=True, qubits=(*block, anc))
+        self.compose(RYGate(2*np.arccos(0.8)).control(num_ctrl_qubits=1, ctrl_state="1"), inplace=True, qubits=(block[-1], anc))
+        # self.compose(RYGate(2*np.arccos((4 + bare_mass**2)-3)).control(num_ctrl_qubits=1, ctrl_state='1'), inplace=True, qubits=(block[-1], anc))
 
 
 class FreeFermionOA(qis.QuantumCircuit):
@@ -431,13 +427,13 @@ class GaugeU1OA(qis.QuantumCircuit):
         vol_states = product(['0', '1'], repeat=ln)
         vol_states = [''.join(x) for x in vol_states]
         block = qis.QuantumRegister(nblock, name='block')
-        lnreg = qis.QuantumRegister(ln, name='ln')
+        # lnreg = qis.QuantumRegister(ln, name='ln')
         anc = qis.QuantumRegister(1, name='anc')
         anc2 = qis.QuantumRegister(1, name='anc2')
         self.add_register(block)
-        self.add_register(lnreg)
+        # self.add_register(lnreg)
         self.add_register(anc)
-        self.add_register(anc2)
+        # self.add_register(anc2)
         # load in gauge config file
         gf = np.exp(1j * np.random.random(size=(4,4,2))*2*np.pi)
         eta = np.ones(shape=(4,4,2))
@@ -454,43 +450,43 @@ class GaugeU1OA(qis.QuantumCircuit):
             qc.unitary(matrix, [0])
             self.compose(qc.control(num_ctrl_qubits=nblock+ln,
                                      ctrl_state=bs + '0000'),
-                         inplace=True, qubits=(*block, *lnreg, *anc))
+                         inplace=True, qubits=(*block, *xreg, *yreg, *anc))
 
-            alpha = -(K**2 / 4) * eta[x][y][0] * eta[(x+1)%4][(y+1)%4][1] * (np.conjugate(gf[x][y][0] * gf[(x+1)%4][y][1]) +
-                                   np.conjugate(gf[x][y][1] * gf[x][(y+1)%4][0])) / norm
+            alpha = -(K**2 / 4) * (eta[x][y][0] * eta[(x+1)%4][(y+1)%4][1] * np.conjugate(gf[x][y][0] * gf[(x+1)%4][y][1]) +
+                                   eta[x][y][1] * eta[(x+1)%4][(y+1)%4][0] * np.conjugate(gf[x][y][1] * gf[x][(y+1)%4][0])) / norm
             matrix = ((alpha + np.conjugate(alpha))/2 * one) + ((alpha - np.conjugate(alpha))/2 * Z) - 1j*Y*np.sqrt(1-np.abs(alpha)**2)
             qc = qis.QuantumCircuit(1)
             qc.unitary(matrix, [0])
             self.compose(qc.control(num_ctrl_qubits=nblock+ln,
                                      ctrl_state=bs + '0001'),
-                         inplace=True, qubits=(*block, *lnreg, *anc))
+                         inplace=True, qubits=(*block, *xreg, *yreg, *anc))
 
-            alpha = (K**2 / 4) * eta[x][y][0] * eta[(x+1)%4][y-1][1] * (gf[x][y-1][1] * np.conjugate(gf[x][y-1][0]) +
-                                   np.conjugate(gf[x][y][0]) * gf[(x+1)%4][y-1][1]) / norm
+            alpha = (K**2 / 4) * (eta[x][y][1] * eta[(x+1)%4][y-1][0] * gf[x][y-1][1] * np.conjugate(gf[x][y-1][0]) +
+                                   eta[x][y][0] * eta[(x+1)%4][y-1][1] * np.conjugate(gf[x][y][0]) * gf[(x+1)%4][y-1][1]) / norm
             matrix = ((alpha + np.conjugate(alpha))/2 * one) + ((alpha - np.conjugate(alpha))/2 * Z) - 1j*Y*np.sqrt(1-np.abs(alpha)**2)
             qc = qis.QuantumCircuit(1)
             qc.unitary(matrix, [0])
             self.compose(qc.control(num_ctrl_qubits=nblock+ln,
                                      ctrl_state=bs + '0010'),
-                         inplace=True, qubits=(*block, *lnreg, *anc))
+                         inplace=True, qubits=(*block, *xreg, *yreg, *anc))
 
-            alpha = (K**2 / 4) * eta[x][y][0] * eta[x-1][(y+1)%4][1] * (gf[x-1][y][0] * np.conjugate(gf[x-1][y][1]) +
-                                   np.conjugate(gf[x][y][1]) * gf[x-1][(y+1)%4][0]) / norm
+            alpha = (K**2 / 4) * (eta[x][y][0] * eta[x-1][(y+1)%4][1] * gf[x-1][y][0] * np.conjugate(gf[x-1][y][1]) +
+                                   eta[x][y][1] * eta[x-1][(y+1)%4][0] * np.conjugate(gf[x][y][1]) * gf[x-1][(y+1)%4][0]) / norm
             matrix = ((alpha + np.conjugate(alpha))/2 * one) + ((alpha - np.conjugate(alpha))/2 * Z) - 1j*Y*np.sqrt(1-np.abs(alpha)**2)
             qc = qis.QuantumCircuit(1)
             qc.unitary(matrix, [0])
             self.compose(qc.control(num_ctrl_qubits=nblock+ln,
                                      ctrl_state=bs + '0011'),
-                         inplace=True, qubits=(*block, *lnreg, *anc))
+                         inplace=True, qubits=(*block, *xreg, *yreg, *anc))
 
-            alpha = -(K**2 / 4) * eta[x][y][0] * eta[x-1][y-1][1] * (gf[x-1][y][0] * gf[x-1][y-1][1] +
-                                   gf[x][y-1][1] * gf[x-1][y-1][0]) / norm
+            alpha = -(K**2 / 4) * (eta[x][y][0] * eta[x-1][y-1][1] * gf[x-1][y][0] * gf[x-1][y-1][1] +
+                                   eta[x][y][1] * eta[x-1][y-1][0] * gf[x][y-1][1] * gf[x-1][y-1][0]) / norm
             matrix = ((alpha + np.conjugate(alpha))/2 * one) + ((alpha - np.conjugate(alpha))/2 * Z) - 1j*Y*np.sqrt(1-np.abs(alpha)**2)
             qc = qis.QuantumCircuit(1)
             qc.unitary(matrix, [0])
             self.compose(qc.control(num_ctrl_qubits=nblock+ln,
                                      ctrl_state=bs + '0100'),
-                         inplace=True, qubits=(*block, *lnreg, *anc))
+                         inplace=True, qubits=(*block, *xreg, *yreg, *anc))
             
             alpha = -(K**2 / 4) * np.conjugate(gf[x][y][1] * gf[x][(y+1)%4][1]) / norm
             matrix = ((alpha + np.conjugate(alpha))/2 * one) + ((alpha - np.conjugate(alpha))/2 * Z) - 1j*Y*np.sqrt(1-np.abs(alpha)**2)
@@ -498,7 +494,7 @@ class GaugeU1OA(qis.QuantumCircuit):
             qc.unitary(matrix, [0])
             self.compose(qc.control(num_ctrl_qubits=nblock+ln,
                                      ctrl_state=bs + '0101'),
-                         inplace=True, qubits=(*block, *lnreg, *anc))
+                         inplace=True, qubits=(*block, *xreg, *yreg, *anc))
 
             alpha = -(K**2 / 4) * gf[x-1][y][0] * gf[x-2][y][0] / norm
             matrix = ((alpha + np.conjugate(alpha))/2 * one) + ((alpha - np.conjugate(alpha))/2 * Z) - 1j*Y*np.sqrt(1-np.abs(alpha)**2)
@@ -506,7 +502,7 @@ class GaugeU1OA(qis.QuantumCircuit):
             qc.unitary(matrix, [0])
             self.compose(qc.control(num_ctrl_qubits=nblock+ln,
                                      ctrl_state=bs + '0110'),
-                         inplace=True, qubits=(*block, *lnreg, *anc))
+                         inplace=True, qubits=(*block, *xreg, *yreg, *anc))
 
             alpha = -(K**2 / 4) * gf[x][y-1][1] * gf[x][y-2][1] / norm
             matrix = ((alpha + np.conjugate(alpha))/2 * one) + ((alpha - np.conjugate(alpha))/2 * Z) - 1j*Y*np.sqrt(1-np.abs(alpha)**2)
@@ -514,8 +510,154 @@ class GaugeU1OA(qis.QuantumCircuit):
             qc.unitary(matrix, [0])
             self.compose(qc.control(num_ctrl_qubits=nblock+ln,
                                      ctrl_state=bs + '0111'),
-                         inplace=True, qubits=(*block, *lnreg, *anc))
-        self.compose(RYGate(2*np.arccos(16 * (m0**2 + 16 * K**2) / norm - 7)).control(num_ctrl_qubits=nblock, ctrl_state='1000', inplace=True, qubits=(*block, *anc)))
+                         inplace=True, qubits=(*block, *xreg, *yreg, *anc))
+        # self.compose(RYGate(2*np.arccos(16 * (m0**2 + 2 * K**2) / norm - 7)).control(num_ctrl_qubits=nblock, ctrl_state='1000'), inplace=True, qubits=(*block, *anc))
+        # self.compose(RYGate(2*np.arccos(2 * (m0**2 + 2 * K**2) / norm)).control(num_ctrl_qubits=1, ctrl_state='1'), inplace=True, qubits=(block[-1], *anc))
+        self.compose(RYGate(2*np.arccos(0.8)).control(num_ctrl_qubits=1, ctrl_state='1'), inplace=True, qubits=(block[-1], *anc))
+
+
+# class GaugeU1OA(qis.QuantumCircuit):
+#     def __init__(self, nsys, dim, m0, K, norm):
+#         """
+#         The quantum circuit for the OA operator
+#         for the case of free staggered fermions.
+
+#         Parameters
+#         ----------
+#         nsys : the number of qubits in the 'system'
+#         dim  : the spacetime dimensions of the lattice
+
+#         """
+#         super().__init__()
+#         s = 4*binom(dim, 2) + 2*dim + 1
+#         # V = 2**(2*nsys)
+#         if s == 1:
+#             nblock = 1
+#         else:
+#             nblock = int(np.ceil(np.log2(s)))
+#             ln = 2*nsys
+#         if dim == 1:
+#             xreg = qis.QuantumRegister(nsys, name='x')
+#             # regs = [xreg]
+#             self.add_register(xreg)
+#         elif dim == 2:
+#             xreg = qis.QuantumRegister(nsys, name='x')
+#             yreg = qis.QuantumRegister(nsys, name='y')
+#             # regs = [xreg, yreg]
+#             self.add_register(xreg)
+#             self.add_register(yreg)
+#         elif dim == 3:
+#             xreg = qis.QuantumRegister(nsys, name='x')
+#             yreg = qis.QuantumRegister(nsys, name='y')
+#             zreg = qis.QuantumRegister(nsys, name='z')
+#             # regs = [xreg, yreg, zreg]
+#             self.add_register(xreg)
+#             self.add_register(yreg)
+#             self.add_register(zreg)
+#         elif dim == 4:
+#             xreg = qis.QuantumRegister(nsys, name='x')
+#             yreg = qis.QuantumRegister(nsys, name='y')
+#             zreg = qis.QuantumRegister(nsys, name='z')
+#             treg = qis.QuantumRegister(nsys, name='t')
+#             # regs = [xreg, yreg, zreg, treg]
+#             self.add_register(xreg)
+#             self.add_register(yreg)
+#             self.add_register(zreg)
+#             self.add_register(treg)
+#         else:
+#             raise ValueError("Dimension must be between 1 and 4")
+#         ntnn_states = product(['0', '1'], repeat=nblock)
+#         ntnn_states = [''.join(x) for x in ntnn_states]
+#         vol_states = product(['0', '1'], repeat=ln)
+#         vol_states = [''.join(x) for x in vol_states]
+#         block = qis.QuantumRegister(nblock, name='block')
+#         lnreg = qis.QuantumRegister(ln, name='ln')
+#         anc = qis.QuantumRegister(1, name='anc')
+#         anc2 = qis.QuantumRegister(1, name='anc2')
+#         self.add_register(block)
+#         self.add_register(lnreg)
+#         self.add_register(anc)
+#         # self.add_register(anc2)
+#         # load in gauge config file
+#         gf = np.exp(1j * np.random.random(size=(4,4,2))*2*np.pi)
+#         eta = np.ones(shape=(4,4,2))
+#         for x, y in product(range(4), repeat=2):
+#             eta[x][y][1] = (-1)**(x)
+#         # gf has shape (V, 2)
+#         for N in zip(product(range(4), range(4)), vol_states):
+#             p, bs = N[0], N[1]
+#             x, y = p[0], p[1]
+#             alpha = -(K**2 / 4) * np.conjugate(gf[x][y][0] * gf[(x+1)%4][y][0])
+#             matrix = ((alpha + np.conjugate(alpha))/2 * one) + ((alpha - np.conjugate(alpha))/2 * Z) - 1j*Y*np.sqrt(1-np.abs(alpha)**2)
+#             # print(matrix)
+#             qc = qis.QuantumCircuit(1)
+#             qc.unitary(matrix, [0])
+#             self.compose(qc.control(num_ctrl_qubits=nblock+ln,
+#                                      ctrl_state=bs + '0000'),
+#                          inplace=True, qubits=(*block, *lnreg, *anc))
+
+#             alpha = -(K**2 / 4) * (eta[x][y][0] * eta[(x+1)%4][(y+1)%4][1] * np.conjugate(gf[x][y][0] * gf[(x+1)%4][y][1]) +
+#                                    eta[x][y][1] * eta[(x+1)%4][(y+1)%4][0] * np.conjugate(gf[x][y][1] * gf[x][(y+1)%4][0])) / norm
+#             matrix = ((alpha + np.conjugate(alpha))/2 * one) + ((alpha - np.conjugate(alpha))/2 * Z) - 1j*Y*np.sqrt(1-np.abs(alpha)**2)
+#             qc = qis.QuantumCircuit(1)
+#             qc.unitary(matrix, [0])
+#             self.compose(qc.control(num_ctrl_qubits=nblock+ln,
+#                                      ctrl_state=bs + '0001'),
+#                          inplace=True, qubits=(*block, *lnreg, *anc))
+
+#             alpha = (K**2 / 4) * (eta[x][y][1] * eta[(x+1)%4][y-1][0] * gf[x][y-1][1] * np.conjugate(gf[x][y-1][0]) +
+#                                    eta[x][y][0] * eta[(x+1)%4][y-1][1] * np.conjugate(gf[x][y][0]) * gf[(x+1)%4][y-1][1]) / norm
+#             matrix = ((alpha + np.conjugate(alpha))/2 * one) + ((alpha - np.conjugate(alpha))/2 * Z) - 1j*Y*np.sqrt(1-np.abs(alpha)**2)
+#             qc = qis.QuantumCircuit(1)
+#             qc.unitary(matrix, [0])
+#             self.compose(qc.control(num_ctrl_qubits=nblock+ln,
+#                                      ctrl_state=bs + '0010'),
+#                          inplace=True, qubits=(*block, *lnreg, *anc))
+
+#             alpha = (K**2 / 4) * (eta[x][y][0] * eta[x-1][(y+1)%4][1] * gf[x-1][y][0] * np.conjugate(gf[x-1][y][1]) +
+#                                    eta[x][y][1] * eta[x-1][(y+1)%4][0] * np.conjugate(gf[x][y][1]) * gf[x-1][(y+1)%4][0]) / norm
+#             matrix = ((alpha + np.conjugate(alpha))/2 * one) + ((alpha - np.conjugate(alpha))/2 * Z) - 1j*Y*np.sqrt(1-np.abs(alpha)**2)
+#             qc = qis.QuantumCircuit(1)
+#             qc.unitary(matrix, [0])
+#             self.compose(qc.control(num_ctrl_qubits=nblock+ln,
+#                                      ctrl_state=bs + '0011'),
+#                          inplace=True, qubits=(*block, *lnreg, *anc))
+
+#             alpha = -(K**2 / 4) * (eta[x][y][0] * eta[x-1][y-1][1] * gf[x-1][y][0] * gf[x-1][y-1][1] +
+#                                    eta[x][y][1] * eta[x-1][y-1][0] * gf[x][y-1][1] * gf[x-1][y-1][0]) / norm
+#             matrix = ((alpha + np.conjugate(alpha))/2 * one) + ((alpha - np.conjugate(alpha))/2 * Z) - 1j*Y*np.sqrt(1-np.abs(alpha)**2)
+#             qc = qis.QuantumCircuit(1)
+#             qc.unitary(matrix, [0])
+#             self.compose(qc.control(num_ctrl_qubits=nblock+ln,
+#                                      ctrl_state=bs + '0100'),
+#                          inplace=True, qubits=(*block, *lnreg, *anc))
+            
+#             alpha = -(K**2 / 4) * np.conjugate(gf[x][y][1] * gf[x][(y+1)%4][1]) / norm
+#             matrix = ((alpha + np.conjugate(alpha))/2 * one) + ((alpha - np.conjugate(alpha))/2 * Z) - 1j*Y*np.sqrt(1-np.abs(alpha)**2)
+#             qc = qis.QuantumCircuit(1)
+#             qc.unitary(matrix, [0])
+#             self.compose(qc.control(num_ctrl_qubits=nblock+ln,
+#                                      ctrl_state=bs + '0101'),
+#                          inplace=True, qubits=(*block, *lnreg, *anc))
+
+#             alpha = -(K**2 / 4) * gf[x-1][y][0] * gf[x-2][y][0] / norm
+#             matrix = ((alpha + np.conjugate(alpha))/2 * one) + ((alpha - np.conjugate(alpha))/2 * Z) - 1j*Y*np.sqrt(1-np.abs(alpha)**2)
+#             qc = qis.QuantumCircuit(1)
+#             qc.unitary(matrix, [0])
+#             self.compose(qc.control(num_ctrl_qubits=nblock+ln,
+#                                      ctrl_state=bs + '0110'),
+#                          inplace=True, qubits=(*block, *lnreg, *anc))
+
+#             alpha = -(K**2 / 4) * gf[x][y-1][1] * gf[x][y-2][1] / norm
+#             matrix = ((alpha + np.conjugate(alpha))/2 * one) + ((alpha - np.conjugate(alpha))/2 * Z) - 1j*Y*np.sqrt(1-np.abs(alpha)**2)
+#             qc = qis.QuantumCircuit(1)
+#             qc.unitary(matrix, [0])
+#             self.compose(qc.control(num_ctrl_qubits=nblock+ln,
+#                                      ctrl_state=bs + '0111'),
+#                          inplace=True, qubits=(*block, *lnreg, *anc))
+#         # self.compose(RYGate(2*np.arccos(16 * (m0**2 + 2 * K**2) / norm - 7)).control(num_ctrl_qubits=nblock, ctrl_state='1000'), inplace=True, qubits=(*block, *anc))
+#         # self.compose(RYGate(2*np.arccos(2 * (m0**2 + 2 * K**2) / norm)).control(num_ctrl_qubits=1, ctrl_state='1'), inplace=True, qubits=(block[-1], *anc))
+#         self.compose(RYGate(2*np.arccos(0.8)).control(num_ctrl_qubits=1, ctrl_state='1'), inplace=True, qubits=(block[-1], *anc))
 
 
 class Diffusion(qis.QuantumCircuit):
@@ -630,7 +772,7 @@ class BigDiffusion(qis.QuantumCircuit):
         self.add_register(block)
         self.add_register(lnreg)
         self.add_register(anc)
-        self.add_register(anc2)
+        # self.add_register(anc2)
         # block = qis.QuantumRegister(nblock, name='block')
         # anc = qis.QuantumRegister(1, name='anc')
         # anc2 = qis.QuantumRegister(1, name='anc2')
@@ -763,12 +905,6 @@ class BlockEncodeU1(qis.QuantumCircuit):
         self.add_register(block)
         self.add_register(lnreg)
         self.add_register(anc)
-        self.add_register(anc2)
-        # block = qis.QuantumRegister(nblock, name='block')
-        # anc = qis.QuantumRegister(1, name='anc')
-        # anc2 = qis.QuantumRegister(1, name='anc2')
-        # self.add_register(block)
-        # self.add_register(anc)
         # self.add_register(anc2)
         self.compose(BigDiffusion(nsys, dim), inplace=True)
         self.compose(GaugeU1OA(nsys, dim, m0, K, norm), inplace=True)
@@ -836,15 +972,122 @@ class StaggeredPhase(qis.QuantumCircuit):
                 self.rz(np.pi * 2**n, q)
 
 
+def make_ferm_w(m0, K, norm):
+    gf = np.exp(1j * np.random.random(size=(4,4,2))*2*np.pi)
+    # print(gf[:,:,0])
+    eta = np.ones(shape=(4,4,2))
+    fmatrix = np.zeros((16, 16), dtype=np.complex128)
+    for x, y in product(range(4), repeat=2):
+        eta[x][y][1] = (-1)**(x)
+    
+    for x, y in product(range(4), repeat=2):
+        x1 = x
+        y1 = y
+        idx1 = 4*x1+y1
+        # print(x1, y1)
+        x2 = (x-1)%4
+        y2 = (y+1)%4
+        idx2 = 4*x2+y2
+        fmatrix[idx1, idx2] = (K**2 / 4) * (eta[x][y][0] * eta[x-1][(y+1)%4][1] * gf[x-1][y][0] * np.conjugate(gf[x-1][y][1]) + eta[x][y][1] * eta[x-1][(y+1)%4][0] * np.conjugate(gf[x][y][1]) * gf[x-1][(y+1)%4][0]) / norm
+        x2 = (x-1)%4
+        y2 = (y-1)%4
+        # print(x2, y2)
+        idx2 = 4*x2+y2
+        fmatrix[idx1, idx2] = -(K**2 / 4) * (eta[x][y][0] * eta[x-1][y-1][1] * gf[x-1][y][0] * gf[x-1][y-1][1] +
+                                   eta[x][y][1] * eta[x-1][y-1][0] * gf[x][y-1][1] * gf[x-1][y-1][0]) / norm
+        x2 = (x+1)%4
+        y2 = (y+1)%4
+        # print(x2, y2)
+        idx2 = 4*x2+y2
+        fmatrix[idx1, idx2] = -(K**2 / 4) * (eta[x][y][0] * eta[(x+1)%4][(y+1)%4][1] * np.conjugate(gf[x][y][0] * gf[(x+1)%4][y][1]) +
+                                   eta[x][y][1] * eta[(x+1)%4][(y+1)%4][0] * np.conjugate(gf[x][y][1] * gf[x][(y+1)%4][0])) / norm
+        x2 = (x+1)%4
+        y2 = (y-1)%4
+        idx2 = 4*x2+y2
+        fmatrix[idx1, idx2] = (K**2 / 4) * (eta[x][y][1] * eta[(x+1)%4][y-1][0] * gf[x][y-1][1] * np.conjugate(gf[x][y-1][0]) +
+                                   eta[x][y][0] * eta[(x+1)%4][y-1][1] * np.conjugate(gf[x][y][0]) * gf[(x+1)%4][y-1][1]) / norm
+        x2 = (x+2)%4
+        y2 = y
+        idx2 = 4*x2+y2
+        fmatrix[idx1, idx2] += -(K**2 / 4) * np.conjugate(gf[x][y][0] * gf[(x+1)%4][y][0]) / norm
+        # fmatrix[idx1, idx2] = 1
+        x2 = (x-2)%4
+        y2 = y
+        idx2 = 4*x2+y2
+        fmatrix[idx1, idx2] += -(K**2 / 4) * gf[x-1][y][0] * gf[x-2][y][0] / norm
+        # fmatrix[idx1, idx2] = 1
+        x2 = x
+        y2 = (y+2)%4
+        # print(x2, y2)
+        idx2 = 4*x2+y2
+        fmatrix[idx1, idx2] += -(K**2 / 4) * np.conjugate(gf[x][y][1] * gf[x][(y+1)%4][1]) / norm
+        # fmatrix[idx1, idx2] = 1
+        x2 = x
+        y2 = (y-2)%4
+        # print(x2, y2)
+        idx2 = 4*x2+y2
+        fmatrix[idx1, idx2] += -(K**2 / 4) * gf[x][y-1][1] * gf[x][y-2][1] / norm
+        # fmatrix[idx1, idx2] = 1
+        fmatrix[idx1, idx1] = (m0**2 + 2 * K**2) / norm
+
+    return fmatrix
+
+
+def block_w(matrix):
+    mat = np.eye(matrix.shape[0])-matrix.dot(matrix.conjugate().transpose())
+    L = sqrtm(mat)
+    assert np.allclose(mat, L.dot(L))
+    return np.kron(one, matrix) + np.kron(-1j*Y, L)
+
+
+# class BlockEncodeU1External(qis.QuantumCircuit):
+    
+
+
 if __name__ == "__main__":
+    pass
     # test = FreeFermionOA(2, 2)
+    
     # print(test)
     # arr = Operator(test).data
     # print(np.allclose(arr, arr.transpose().conjugate()))
-    test = NtNNOc(2, 2)
-    # test = GaugeU1OA(2, 2, 1)
-    # test = Lshift(2)
+    # test = NtNNOc(2, 2)
+    test = GaugeU1OA(2, 2, 0.1, 1., 4)
     print(test)
+    # test = BlockEncodeU1(2, 2, 0.1, 1., 4)
+
+    # backend = Aer.get_backend('qasm_simulator')
+    # backend_options = {"method": "statevector"}
+    # aersim = AerSimulator()
+
+    # results_ideal = qis.execute(test, aersim).result()
+    # print(results_ideal)
+    # # Circuit execution
+    # job = execute(test, backend, backend_options=backend_options)
+    # pass
+    # qc = qis.transpile(test, basis_gates=['cx', 'u'])
+    # arr = Operator(qc).data
+    # print(arr[:16, :16])
+    # test = BigDiffusion(2, 2)
+    # test = Lshift(2)
+    # arr = Operator(test).data
+    # print(arr[:16, :16])
+    # print(test)
     # for i in my_product(range(2), repeat=3):
     #     print(i)
+    # test = make_ferm_w(0.5, 1, 1)
+    # # exit()
+    # eigvals = np.linalg.eigvals(test)
+    # eigvals = np.sort(eigvals)
+    # test /= eigvals[-1]
+    # print(test)
+    # u = block_w(test)
+    # print(u[:16, :16].dot(u[:16, :16].conjugate().transpose())
+    #       + u[:16, 16:].dot(u[:16, 16:]))
+    # print(u[:16, :16])
+    # print(u.dot(u.conjugate().transpose()))
+    # print(np.allclose(u.dot(u.conjugate().transpose()), np.eye(u.shape[0])))
+    # print(test[0,2], test[2,0])
+    # print(test)
+    # print(np.allclose(test, test.conjugate().transpose()))
     
