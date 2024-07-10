@@ -23,6 +23,7 @@ one = np.eye(2)
 Z = np.array([[1, 0], [0, -1]])
 Y = np.array([[0, -1j], [1j, 0]])
 
+
 def my_product(*iterables, repeat=1):
     # product('ABCD', 'xy') → Ax Ay Bx By Cx Cy Dx Dy
     # product(range(2), repeat=3) → 000 100 010 110 001 101 011 111
@@ -118,18 +119,11 @@ class NtNNOc(qis.QuantumCircuit):
         """
         super().__init__()
         s = 4*binom(dim, 2) + 2*dim + 1
-        # V = 2**(2*nsys)
         if s == 1:
             nblock = 1
         else:
             nblock = int(np.ceil(np.log2(s)))
-            ln = 2*nsys
-        # s = 4*binom(dim, 2) + 2*dim + 1
-        # print(s)
-        # if s == 1:
-        #     nblock = 1
-        # else:
-        #     nblock = int(np.ceil(np.log2(s)))
+            # ln = 2*nsys
         if dim == 1:
             xreg = qis.QuantumRegister(nsys, name='x')
             regs = [xreg]
@@ -388,7 +382,7 @@ class FreeFermionOA(qis.QuantumCircuit):
 
 
 class GaugeU1OA(qis.QuantumCircuit):
-    def __init__(self, nsys, dim, m0, K, norm):
+    def __init__(self, nsys, dim, m0, K):
         """
         The quantum circuit for the OA operator
         for the case of free staggered fermions.
@@ -404,6 +398,9 @@ class GaugeU1OA(qis.QuantumCircuit):
         """
         super().__init__()
         s = 4*binom(dim, 2) + 2*dim + 1
+        lambda_lb = m0**2
+        lambda_ub = m0**2 + 16 * K**2
+        norm = lambda_lb - lambda_ub
         # V = 2**(2*nsys)
         if s == 1:
             nblock = 1
@@ -447,7 +444,7 @@ class GaugeU1OA(qis.QuantumCircuit):
         block = qis.QuantumRegister(nblock, name='block')
         # lnreg = qis.QuantumRegister(ln, name='ln')
         anc = qis.QuantumRegister(1, name='anc')
-        anc2 = qis.QuantumRegister(1, name='anc2')
+        # anc2 = qis.QuantumRegister(1, name='anc2')
         self.add_register(block)
         # self.add_register(lnreg)
         self.add_register(anc)
@@ -465,7 +462,7 @@ class GaugeU1OA(qis.QuantumCircuit):
             y, x = p[0], p[1]
             # print(x,y)
             # print(bs)
-            alpha = -(K**2 / 4) * np.conjugate(gf[x][y][0] * gf[(x+1)%4][y][0]) / 2
+            alpha = -(K**2 / 4) * np.conjugate(gf[x][y][0] * gf[(x+1)%4][y][0]) * 16 / norm
             # print(alpha)
             matrix = (np.real(alpha) * one) + (1j*np.imag(alpha) * Z) - 1j*Y*np.sqrt(1-np.abs(alpha)**2)
             # print(matrix[0,0])
@@ -476,7 +473,7 @@ class GaugeU1OA(qis.QuantumCircuit):
                          inplace=True, qubits=(*block, *xreg, *yreg, *anc))
 
             alpha = -(K**2 / 4) * (eta[x][y][0] * eta[(x+1)%4][(y+1)%4][1] * np.conjugate(gf[x][y][0] * gf[(x+1)%4][y][1]) +
-                                   eta[x][y][1] * eta[(x+1)%4][(y+1)%4][0] * np.conjugate(gf[x][y][1] * gf[x][(y+1)%4][0])) / 2
+                                   eta[x][y][1] * eta[(x+1)%4][(y+1)%4][0] * np.conjugate(gf[x][y][1] * gf[x][(y+1)%4][0])) * 16 / norm
             matrix = (np.real(alpha) * one) + (1j*np.imag(alpha) * Z) - 1j*Y*np.sqrt(1-np.abs(alpha)**2)
             qc = qis.QuantumCircuit(1)
             qc.unitary(matrix, [0])
@@ -485,7 +482,7 @@ class GaugeU1OA(qis.QuantumCircuit):
                          inplace=True, qubits=(*block, *xreg, *yreg, *anc))
 
             alpha = (K**2 / 4) * (eta[x][y][1] * eta[(x+1)%4][y-1][0] * gf[x][y-1][1] * np.conjugate(gf[x][y-1][0]) +
-                                  eta[x][y][0] * eta[(x+1)%4][y-1][1] * np.conjugate(gf[x][y][0]) * gf[(x+1)%4][y-1][1]) / 2
+                                  eta[x][y][0] * eta[(x+1)%4][y-1][1] * np.conjugate(gf[x][y][0]) * gf[(x+1)%4][y-1][1]) * 16 / norm
             # print(gf[x][y-1][1] * np.conjugate(gf[x][y-1][0]), np.conjugate(gf[x][y][0]) * gf[(x+1)%4][y-1][1])
             matrix = (np.real(alpha) * one) + (1j*np.imag(alpha) * Z) - 1j*Y*np.sqrt(1-np.abs(alpha)**2)
             # print(matrix)
@@ -497,7 +494,7 @@ class GaugeU1OA(qis.QuantumCircuit):
                          inplace=True, qubits=(*block, *xreg, *yreg, *anc))
             # break
             alpha = (K**2 / 4) * (eta[x][y][0] * eta[x-1][(y+1)%4][1] * gf[x-1][y][0] * np.conjugate(gf[x-1][y][1]) +
-                                  eta[x][y][1] * eta[x-1][(y+1)%4][0] * np.conjugate(gf[x][y][1]) * gf[x-1][(y+1)%4][0]) / 2
+                                  eta[x][y][1] * eta[x-1][(y+1)%4][0] * np.conjugate(gf[x][y][1]) * gf[x-1][(y+1)%4][0]) * 16 / norm
             matrix = (np.real(alpha) * one) + (1j*np.imag(alpha) * Z) - 1j*Y*np.sqrt(1-np.abs(alpha)**2)
             qc = qis.QuantumCircuit(1)
             qc.unitary(matrix, [0])
@@ -506,7 +503,7 @@ class GaugeU1OA(qis.QuantumCircuit):
                          inplace=True, qubits=(*block, *xreg, *yreg, *anc))
 
             alpha = -(K**2 / 4) * (eta[x][y][0] * eta[x-1][y-1][1] * gf[x-1][y][0] * gf[x-1][y-1][1] +
-                                   eta[x][y][1] * eta[x-1][y-1][0] * gf[x][y-1][1] * gf[x-1][y-1][0]) / 2
+                                   eta[x][y][1] * eta[x-1][y-1][0] * gf[x][y-1][1] * gf[x-1][y-1][0]) * 16 / norm
             matrix = (np.real(alpha) * one) + (1j*np.imag(alpha) * Z) - 1j*Y*np.sqrt(1-np.abs(alpha)**2)
             qc = qis.QuantumCircuit(1)
             qc.unitary(matrix, [0])
@@ -514,7 +511,7 @@ class GaugeU1OA(qis.QuantumCircuit):
                                     ctrl_state=bs + '0100'),
                          inplace=True, qubits=(*block, *xreg, *yreg, *anc))
             
-            alpha = -(K**2 / 4) * np.conjugate(gf[x][y][1] * gf[x][(y+1)%4][1]) / 2
+            alpha = -(K**2 / 4) * np.conjugate(gf[x][y][1] * gf[x][(y+1)%4][1]) * 16 / norm
             matrix = (np.real(alpha) * one) + (1j*np.imag(alpha) * Z) - 1j*Y*np.sqrt(1-np.abs(alpha)**2)
             qc = qis.QuantumCircuit(1)
             qc.unitary(matrix, [0])
@@ -522,7 +519,7 @@ class GaugeU1OA(qis.QuantumCircuit):
                                     ctrl_state=bs + '0101'),
                          inplace=True, qubits=(*block, *xreg, *yreg, *anc))
 
-            alpha = -(K**2 / 4) * gf[x-1][y][0] * gf[x-2][y][0] / 2
+            alpha = -(K**2 / 4) * gf[x-1][y][0] * gf[x-2][y][0] * 16 / norm
             matrix = (np.real(alpha) * one) + (1j*np.imag(alpha) * Z) - 1j*Y*np.sqrt(1-np.abs(alpha)**2)
             qc = qis.QuantumCircuit(1)
             qc.unitary(matrix, [0])
@@ -530,15 +527,24 @@ class GaugeU1OA(qis.QuantumCircuit):
                                     ctrl_state=bs + '0110'),
                          inplace=True, qubits=(*block, *xreg, *yreg, *anc))
 
-            alpha = -(K**2 / 4) * gf[x][y-1][1] * gf[x][y-2][1] / 2
+            alpha = -(K**2 / 4) * gf[x][y-1][1] * gf[x][y-2][1] * 16 / norm
             matrix = (np.real(alpha) * one) + (1j*np.imag(alpha) * Z) - 1j*Y*np.sqrt(1-np.abs(alpha)**2)
             qc = qis.QuantumCircuit(1)
             qc.unitary(matrix, [0])
             self.compose(qc.control(num_ctrl_qubits=nblock+ln,
                                     ctrl_state=bs + '0111'),
                          inplace=True, qubits=(*block, *xreg, *yreg, *anc))
+
+        # alpha = ((m0**2 + K**2) - lambda_ub) / norm
+        # matrix = (np.real(alpha) * one) + (1j*np.imag(alpha) * Z) - 1j*Y*np.sqrt(1-np.abs(alpha)**2)
+        # qc = qis.QuantumCircuit(1)
+        # qc.unitary(matrix, [0])
+        # self.compose(qc.control(num_ctrl_qubits=1, ctrl_state='1'), inplace=True, qubits=(block[-1], *anc))
+
         # self.compose(RYGate(2*np.arccos(16 * (m0**2 + 2 * K**2) / norm - 7)).control(num_ctrl_qubits=nblock, ctrl_state='1000'), inplace=True, qubits=(*block, *anc))
+        # self.compose(RYGate(2*np.arccos(2 * ((m0**2 + K**2) - lambda_ub) / norm)).control(num_ctrl_qubits=1, ctrl_state='1'), inplace=True, qubits=(block[-1], *anc))
         self.compose(RYGate(2*np.arccos(2 * (m0**2 + K**2) / norm)).control(num_ctrl_qubits=1, ctrl_state='1'), inplace=True, qubits=(block[-1], *anc))
+        # self.compose(RYGate(2*np.arccos(((m0**2 + K**2) - lambda_ub) / (8*norm))).control(num_ctrl_qubits=1, ctrl_state='1'), inplace=True, qubits=(block[-1], *anc))
         # self.compose(RYGate(2*np.arccos(0.8)).control(num_ctrl_qubits=1, ctrl_state='1'), inplace=True, qubits=(block[-1], *anc))
 
 
@@ -870,7 +876,7 @@ class BlockEncodeFreeScalar(qis.QuantumCircuit):
 
 
 class BlockEncodeU1(qis.QuantumCircuit):
-    def __init__(self, nsys, dim, m0, K, norm):
+    def __init__(self, nsys, dim, m0, K):
         """
         The full quantum circuit for block-encoding
         the free scalar laplacian.
@@ -934,7 +940,7 @@ class BlockEncodeU1(qis.QuantumCircuit):
         # self.add_register(anc2)
         self.compose(BigDiffusion(nsys, dim), inplace=True)
         # self.compose(Diffusion(nsys, dim), inplace=True)
-        self.compose(GaugeU1OA(nsys, dim, m0, K, norm), inplace=True)
+        self.compose(GaugeU1OA(nsys, dim, m0, K), inplace=True)
         self.compose(NtNNOc(nsys, dim), inplace=True)
         # self.compose(Diffusion(nsys, dim), inplace=True)
         self.compose(BigDiffusion(nsys, dim), inplace=True)
