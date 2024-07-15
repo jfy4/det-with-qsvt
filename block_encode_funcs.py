@@ -382,7 +382,7 @@ class FreeFermionOA(qis.QuantumCircuit):
 
 
 class GaugeU1OA(qis.QuantumCircuit):
-    def __init__(self, nsys, dim, m0, K):
+    def __init__(self, nsys, dim, m0, K, norm, gt=False):
         """
         The quantum circuit for the OA operator
         for the case of free staggered fermions.
@@ -398,9 +398,9 @@ class GaugeU1OA(qis.QuantumCircuit):
         """
         super().__init__()
         s = 4*binom(dim, 2) + 2*dim + 1
-        lambda_lb = m0**2
-        lambda_ub = m0**2 + 16 * K**2
-        norm = lambda_lb - lambda_ub
+        # lambda_lb = m0**2
+        # lambda_ub = m0**2 + 16 * K**2
+        # norm = lambda_lb - lambda_ub
         # V = 2**(2*nsys)
         if s == 1:
             nblock = 1
@@ -453,6 +453,12 @@ class GaugeU1OA(qis.QuantumCircuit):
         # gf = np.exp(1j * np.random.random(size=(4,4,2))*2*np.pi)
         gf = np.exp(1j * np.array([i*2*np.pi / (2*4*4) for i in range(2*4*4)])).reshape((2,4,4))
         gf = gf.transpose((1,2,0))
+        if gt:
+            gauge_trans = np.exp(1j * 0.12345)
+            gf[1, 1, 0] *= np.conjugate(gauge_trans)
+            gf[1, 1, 1] *= np.conjugate(gauge_trans)
+            gf[0, 1, 0] *= gauge_trans
+            gf[1, 0, 1] *= gauge_trans
         eta = np.ones(shape=(4,4,2))
         for x, y in product(range(4), repeat=2):
             eta[x][y][1] = (-1)**(x)
@@ -876,7 +882,7 @@ class BlockEncodeFreeScalar(qis.QuantumCircuit):
 
 
 class BlockEncodeU1(qis.QuantumCircuit):
-    def __init__(self, nsys, dim, m0, K):
+    def __init__(self, nsys, dim, m0, K, norm, gt=False):
         """
         The full quantum circuit for block-encoding
         the free scalar laplacian.
@@ -940,7 +946,7 @@ class BlockEncodeU1(qis.QuantumCircuit):
         # self.add_register(anc2)
         self.compose(BigDiffusion(nsys, dim), inplace=True)
         # self.compose(Diffusion(nsys, dim), inplace=True)
-        self.compose(GaugeU1OA(nsys, dim, m0, K), inplace=True)
+        self.compose(GaugeU1OA(nsys, dim, m0, K, norm, gt=gt), inplace=True)
         self.compose(NtNNOc(nsys, dim), inplace=True)
         # self.compose(Diffusion(nsys, dim), inplace=True)
         self.compose(BigDiffusion(nsys, dim), inplace=True)
@@ -1091,9 +1097,9 @@ if __name__ == "__main__":
     # print(np.allclose(arr, arr.transpose().conjugate()))
     # test = NtNNOc(2, 2)
     # test = GaugeU1OA(2, 2, 0.5, 1.5, 32)
-    test = BlockEncodeU1(2, 2, 0.5, 1.5, 32)
+    # test = BlockEncodeU1(2, 2, 0.5, 1.5, 32)
     # # test = Lshift(2)
-    print(test)
+    # print(test)
     # arr = Operator(test).data
     # print(arr)
     # backend = Aer.get_backend('qasm_simulator')
@@ -1115,8 +1121,9 @@ if __name__ == "__main__":
     # print(test)
     # for i in my_product(range(2), repeat=3):
     #     print(i)
-    # test = make_ferm_w(0.5, 1.5, 32, 4)
-    # print(test[:,0])
+
+    test = make_ferm_w(0.5, 1.5, 32, 4)
+    print(test)
 
     # # exit()
     # eigvals = np.linalg.eigvals(test)
